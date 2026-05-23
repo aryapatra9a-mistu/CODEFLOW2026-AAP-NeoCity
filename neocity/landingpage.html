@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NeoCity AI — Build the Future</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet"/
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+:root {
+      --bg:#050816;
+      --green:#00FFB2;
+      --cyan:#00D1FF;
+      --white:#E8F4FF;
+}
+body {
+      background:var(--bg);
+      color:var(--white);
+      font-family:'Rajdhani',sans-serif;
+      overflow-x:hidden;
+      cursor:none;
+}
+#cursor {
+      position:fixed;width:14px;height:14px;
+      border:2px solid var(--green);
+      border-radius:50%;
+      pointer-events:none;
+      transform:translate(-50%,-50%);
+      z-index:9999;
+}
+nav {
+      position:fixed;top:0;width:100%;
+      display:flex;justify-content:space-between;
+      padding:18px 40px;
+      z-index:100;
+      background:rgba(5,8,22,.8);
+      backdrop-filter:blur(10px);
+}
+
+.logo {
+      font-family:'Orbitron';
+      font-weight:900;
+      color:var(--green);
+      letter-spacing:2px;
+}
+.menu a {
+      margin-left:20px;
+      color:rgba(232,244,255,.6);
+      text-decoration:none;
+      font-size:.85rem;
+}
+.menu a:hover { color:var(--cyan); }
+.hero {
+      height:100vh;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      align-items:center;
+      text-align:center;
+      padding:20px;
+}
+.hero h1 {
+      font-family:'Orbitron';
+      font-size:3rem;
+      color:var(--green);
+}
+.hero p {
+      max-width:600px;
+      margin-top:15px;
+      opacity:.7;
+}
+.btn {
+      margin-top:30px;
+      padding:14px 40px;
+      border:none;
+      font-family:'Orbitron';
+      cursor:pointer;
+      letter-spacing:2px;
+}
+.btn-primary {
+      background:var(--green);
+      color:#000;
+}
+.btn-secondary {
+      background:transparent;
+      border:1px solid var(--cyan);
+      color:var(--cyan);
+      margin-left:10px;
+}
+.help {
+      padding:80px 20px;
+      text-align:center;
+}
+.help h2 {
+      font-family:'Orbitron';
+      color:var(--cyan);
+      margin-bottom:20px;
+}
+.cards {
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+      gap:20px;
+      margin-top:40px;
+      max-width:1000px;
+      margin-inline:auto;
+    }
+.card {
+      border:1px solid rgba(0,255,178,.2);
+      padding:20px;
+      background:rgba(255,255,255,.02);
+    }
+.card h3 {
+      color:var(--green);
+      margin-bottom:10px;
+      font-family:'Orbitron';
+      font-size:.9rem;
+    }
+footer {
+      text-align:center;
+      padding:20px;
+      opacity:.4;
+      border-top:1px solid rgba(255,255,255,.1);
+    }
+</style>
+</head>
+<body>
+<div id="cursor"></div>
+<nav>
+<div class="logo">NEOCITY AI</div>
+<div class="menu">
+<a href="#help">Help</a>
+<a href="#process">Process</a>
+</div>
+</nav>
+<section class="hero">
+<h1>NeoCity AI</h1>
+<p>Build and simulate your futuristic city. Every decision shapes energy, pollution, and happiness in real time.</p><div>
+<button class="btn btn-primary" onclick="window.location.href='login.html'">
+Start Building
+</button>
+<button class="btn btn-secondary" onclick="document.getElementById('help').scrollIntoView()">
+Process & Help
+</button>
+</div>
+</section>
+<section class="help" id="help">
+<h2>Process & Help Menu</h2>
+<div class="cards">
+<div class="card">
+<h3>1. Build City</h3>
+<p>Place buildings like factories, forests, solar plants, and transport systems.</p>
+</div>
+<div class="card">
+<h3>2. Observe Impact</h3>
+<p>Watch pollution, energy, and happiness change in real time.</p></div>
+<div class="card">
+<h3>3. Improve City</h3>
+<p>Balance economy and sustainability using smart decisions.</p>
+</div>
+</div>
+</section>
+<footer>
+NeoCity AI © Sustainable Simulation Platform
+</footer>
+<script>
+document.addEventListener("mousemove", e => {
+const c = document.getElementById("cursor");
+c.style.left = e.clientX + "px";
+c.style.top = e.clientY + "px";
+});
+</script>
+</body>
+</html>
