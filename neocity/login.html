@@ -1,5 +1,5 @@
-<!DOCTYPE html>
 
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
@@ -612,8 +612,13 @@ setTimeout(()=>{window.location.href='index.html';},1300);
 },1000);
 }
 function handleGuest(){
-localStorage.setItem('nc_session',JSON.stringify({name:'Guest Planner',email:'',ts:Date.now()}));
-window.location.href='index.html';
+  localStorage.setItem('nc_session', JSON.stringify({
+    name: 'Guest Planner',
+    email: 'guest@neocity.ai',
+    role: 'guest',
+    ts: Date.now()
+  }));
+  window.location.href = 'landingpage.html';
 }
 document.addEventListener('keydown',e=>{
 if(e.key!=='Enter')return;
