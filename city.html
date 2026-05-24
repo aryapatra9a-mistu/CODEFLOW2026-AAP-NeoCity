@@ -283,7 +283,7 @@
         <div id="predText" style="font-size:.9rem;line-height:1.7;color:rgba(232,244,255,.7);letter-spacing:.04em;"></div>
       </div>
       <div style="display:flex;justify-content:flex-end;padding-top:4px;">
-        <button onclick="closeModal()" style="font-family:'Orbitron',sans-serif;font-size:.75rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;padding:14px 28px;background:var(--green);color:#050816;border:none;cursor:pointer;clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);transition:box-shadow .25s,transform .2s;min-height:44px;">✔ COMPLETE &amp; RETURN</button>
+        <button onclick="goToDashboard()" style="font-family:'Orbitron',sans-serif;font-size:.75rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;padding:14px 28px;background:var(--green);color:#050816;border:none;cursor:pointer;clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);transition:box-shadow .25s,transform .2s;min-height:44px;">✔ COMPLETE &amp; GO TO DASHBOARD</button>
       </div>
     </div>
   </div>
@@ -319,6 +319,11 @@ function init() {
   });
 }
 
+/* ===================== DASHBOARD ROUTING ===================== */
+function goToDashboard() {
+  window.location.href = 'dashboard.html';
+}
+
 /* ===================== SIDEBAR ===================== */
 function getCount(id) {
   return state.grid.filter(b => b === id).length;
@@ -351,11 +356,10 @@ function buildSidebar() {
       </div>
     `;
     
-    // Core interaction update: card click places building, inline buttons route explicitly
     div.addEventListener('click', (e) => {
       const actionButton = e.target.closest('.cnt-btn');
       if (actionButton) {
-        e.stopPropagation(); // Stop parent trigger event
+        e.stopPropagation();
         const mode = actionButton.getAttribute('data-action');
         if (mode === 'plus') {
           addBuilding(b.id);
@@ -620,7 +624,7 @@ function renderAlerts() {
 
 /* ===================== TOOLTIP & CURSOR ===================== */
 function showTooltip(e, b) {
-  if (window.innerWidth <= 768) return; // Prevent tooltip overlap complications on portable layouts
+  if (window.innerWidth <= 768) return;
   const tt = document.getElementById('tooltip');
   document.getElementById('ttName').textContent = b.name;
   document.getElementById('ttDesc').textContent = b.desc;
@@ -640,7 +644,6 @@ function trackCursor() {
   const trail = document.getElementById('cursor-trail');
   if (!cur || !trail) return;
   
-  // Custom design engine glow cursor initialization rule
   if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
     cur.style.display = 'none';
     trail.style.display = 'none';
@@ -669,6 +672,7 @@ function openCityView() {
   m.classList.add('open');
   setTimeout(drawVisualCity, 50);
 }
+/* This only closes the preview popup modal wrapper overlay context */
 function closeModal() {
   document.getElementById('cityModal').classList.remove('open');
 }
@@ -682,7 +686,6 @@ function drawVisualCity() {
   
   ctx.clearRect(0,0,w,h);
   
-  // Neon abstract cityscape layout generation
   const activeBuildings = state.grid.filter(Boolean);
   if (activeBuildings.length === 0) return;
   
@@ -700,13 +703,11 @@ function drawVisualCity() {
     ctx.lineWidth = 1.5;
     ctx.strokeRect(x, y, bWidth - 2, bHeight);
     
-    // Core data indicator nodes
     ctx.fillStyle = b.color;
     ctx.font = '10px sans-serif';
     ctx.fillText(b.emoji, x + (bWidth/2) - 6, y - 6);
   });
   
-  // Modal stat projection strings configuration
   document.getElementById('modalStats').innerHTML = METRIC_CFG.map(m => `
     <div class="stat-box" style="--sc:${m.color}">
       <div class="stat-box-label">${m.label}</div>
@@ -714,7 +715,6 @@ function drawVisualCity() {
     </div>
   `).join('');
   
-  // Metric response processing text
   let txt = "NeoCity system optimization balanced. ";
   if(state.metrics.pollution > 55) txt += "High priority alert: Carbon generation limits exceeded. Plant more micro forests to establish a continuous filtration grid.";
   else if(state.metrics.sustainability > 70) txt += "Exceptional configuration profile. Green infrastructure output guarantees high resource resilience and complete carbon mitigation.";
