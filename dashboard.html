@@ -1,196 +1,425 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>NeoCity AI — Dashboard</title>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bg:#050816; --bg2:#080f22; --bg3:#0c1430;
-      --green:#00FFB2; --cyan:#00D1FF; --red:#FF5C5C;
-      --yellow:#FFB800; --purple:#7B2FBE; --white:#E8F4FF;
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NeoCity AI — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+      --bg:#050816;
+      --bg2:#080f22;
+      --bg3:#0c1430;
+      --green:#00FFB2;
+      --cyan:#00D1FF;
+      --red:#FF5C5C;
+      --yellow:#FFB800;
+      --purple:#7B2FBE;
+      --white:#E8F4FF;
       --border:rgba(0,255,178,0.09);
-    }
-    html,body { min-height:100%; background:var(--bg); color:var(--white); font-family:'Rajdhani',sans-serif; cursor:default; overflow-x:hidden; }
-    #cursor { position:fixed;width:12px;height:12px;border:2px solid var(--green);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:transform .1s;mix-blend-mode:screen;display:none; }
-    #cursor-trail { position:fixed;width:28px;height:28px;border:1px solid rgba(0,255,178,.2);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:left .12s ease,top .12s ease;display:none; }
-    body::before { content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.06) 2px,rgba(0,0,0,.06) 4px);pointer-events:none;z-index:1; }
-    #bg-canvas { position:fixed;inset:0;width:100%;height:100%;z-index:0;opacity:.6; }
-    .content { position:relative;z-index:10;min-height:100vh;display:flex;flex-direction:column; }
-
-    /* TOPBAR */
-    .topbar { display:flex;align-items:center;justify-content:space-between;padding:0 32px;height:56px;background:rgba(5,8,22,.97);border-bottom:1px solid var(--border);flex-shrink:0;gap:12px; }
-    .tb-logo { font-family:'Orbitron',sans-serif;font-weight:900;font-size:.95rem;letter-spacing:.15em;color:var(--green);text-shadow:0 0 18px rgba(0,255,178,.5);white-space:nowrap; }
-    .tb-logo span { color:var(--cyan); }
-    .tb-nav { display:flex;gap:4px; }
-    .tb-nav a { font-family:'Orbitron',sans-serif;font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;padding:7px 14px;color:rgba(232,244,255,.35);text-decoration:none;border:1px solid transparent;transition:all .2s;cursor:pointer;white-space:nowrap; }
-    .tb-nav a:hover { color:var(--cyan);border-color:rgba(0,209,255,.2); }
-    .tb-nav a.active { color:var(--green);border-color:rgba(0,255,178,.2);background:rgba(0,255,178,.05); }
-    .tb-right { display:flex;align-items:center;gap:10px;flex-shrink:0; }
-    .tb-time { font-family:'Orbitron',sans-serif;font-size:.6rem;color:rgba(0,255,178,.35);letter-spacing:.12em;white-space:nowrap; }
-
-    .dashboard { padding:24px 32px 40px;display:flex;flex-direction:column;gap:20px;flex:1; }
-    .sec-label { font-family:'Orbitron',sans-serif;font-size:.55rem;letter-spacing:.3em;color:rgba(0,255,178,.4);text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px; }
-    .sec-label::before { content:'';width:3px;height:10px;background:var(--green);opacity:.6; }
-
-    /* GAME CARD */
-    .game-row { display:grid;grid-template-columns:1fr;max-width:620px;gap:16px; }
-    .game-card { padding:28px;border:1px solid rgba(0,255,178,.1);background:rgba(8,15,34,.7);position:relative;overflow:hidden;transition:border-color .25s,background .25s; }
-    .game-card::before { content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,255,178,.04) 0%,transparent 60%);pointer-events:none; }
-    .game-card:hover { border-color:rgba(0,255,178,.3);background:rgba(8,15,34,.9); }
-    .gc-icon { font-size:2rem;margin-bottom:14px;display:block;line-height:1; }
-    .gc-title { font-family:'Orbitron',sans-serif;font-size:.9rem;font-weight:700;letter-spacing:.1em;color:var(--white);margin-bottom:6px; }
-    .gc-desc { font-size:.85rem;color:rgba(232,244,255,.4);line-height:1.6;letter-spacing:.03em;margin-bottom:20px; }
-    .gc-meta { display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px; }
-    .gc-tag { font-size:.6rem;font-family:'Orbitron',sans-serif;letter-spacing:.1em;padding:3px 8px;border:1px solid rgba(0,255,178,.15);color:rgba(0,255,178,.6); }
-    .btn-game { display:inline-flex;align-items:center;gap:8px;font-family:'Orbitron',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;padding:12px 28px;border:none;cursor:pointer;min-height:44px;clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);transition:box-shadow .25s,transform .2s;position:relative;overflow:hidden; }
-    .btn-game::before { content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent);transform:translateX(-100%);transition:transform .4s; }
-    .btn-game:hover::before { transform:translateX(100%); }
-    .btn-game.primary { background:var(--green);color:#050816; }
-    .btn-game.primary:hover { box-shadow:0 0 28px rgba(0,255,178,.5);transform:translateY(-1px); }
-
-    /* STATS */
-    .stats-row { display:grid;grid-template-columns:repeat(5,1fr);gap:12px; }
-    .stat-card { padding:18px 16px;border:1px solid rgba(255,255,255,.05);background:rgba(8,15,34,.6);position:relative;overflow:hidden;transition:border-color .2s; }
-    .stat-card::after { content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--c,var(--green)); }
-    .stat-card:hover { border-color:rgba(0,255,178,.15); }
-    .stat-label { font-family:'Orbitron',sans-serif;font-size:.52rem;letter-spacing:.18em;color:rgba(232,244,255,.35);text-transform:uppercase;margin-bottom:6px; }
-    .stat-value { font-family:'Orbitron',sans-serif;font-size:1.7rem;font-weight:900;color:var(--c,var(--green));line-height:1; }
-    .stat-unit { font-size:.65rem;color:rgba(232,244,255,.3);margin-top:3px;letter-spacing:.06em; }
-
-    /* BADGE */
-    .perf-badge { display:inline-flex;align-items:center;gap:6px;font-family:'Orbitron',sans-serif;font-size:.62rem;letter-spacing:.12em;padding:6px 14px;border-radius:1px;text-transform:uppercase; }
-    .perf-badge.excellent { background:rgba(0,255,178,.1);border:1px solid rgba(0,255,178,.3);color:var(--green); }
-    .perf-badge.good { background:rgba(0,209,255,.1);border:1px solid rgba(0,209,255,.3);color:var(--cyan); }
-    .perf-badge.moderate { background:rgba(255,184,0,.1);border:1px solid rgba(255,184,0,.3);color:var(--yellow); }
-    .perf-badge.poor { background:rgba(255,92,92,.1);border:1px solid rgba(255,92,92,.3);color:var(--red); }
-    .perf-dot { width:6px;height:6px;border-radius:50%;background:currentColor;animation:pulse 1.5s infinite; }
-    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.6)} }
-
-    /* CONTENT ROW */
-    .content-row { display:grid;grid-template-columns:1fr 380px;gap:20px; }
-    .history-panel { background:rgba(8,15,34,.7);border:1px solid var(--border);display:flex;flex-direction:column; }
-    .panel-head { display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap;gap:8px; }
-    .panel-head-title { font-family:'Orbitron',sans-serif;font-size:.65rem;letter-spacing:.2em;color:var(--green);text-transform:uppercase; }
-    .panel-head-sub { font-size:.72rem;color:rgba(232,244,255,.3);letter-spacing:.04em; }
-    .chart-area { padding:20px;flex:1; }
-    #scoreChart { width:100%;height:200px;display:block; }
-    .history-table { width:100%;border-collapse:collapse; }
-    .history-table th { font-family:'Orbitron',sans-serif;font-size:.52rem;letter-spacing:.18em;color:rgba(232,244,255,.3);text-transform:uppercase;text-align:left;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.04);background:rgba(0,0,0,.2); }
-    .history-table td { padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.03);font-size:.82rem;letter-spacing:.04em; }
-    .history-table tr:hover td { background:rgba(0,255,178,.02); }
-    .history-table tr:last-child td { border-bottom:none; }
-    .score-cell { font-family:'Orbitron',sans-serif;font-weight:700; }
-    .empty-history { text-align:center;padding:40px 20px;color:rgba(232,244,255,.2);font-size:.82rem;letter-spacing:.08em; }
-
-    /* RIGHT COL */
-    .right-col { display:flex;flex-direction:column;gap:16px; }
-    .metric-panel { background:rgba(8,15,34,.7);border:1px solid var(--border); }
-    .mp-head { padding:14px 18px;border-bottom:1px solid var(--border); }
-    .mp-title { font-family:'Orbitron',sans-serif;font-size:.6rem;letter-spacing:.2em;color:var(--cyan);text-transform:uppercase; }
-    .mp-body { padding:16px 18px; }
-    .poll-gauge { text-align:center;margin-bottom:16px; }
-    .poll-num { font-family:'Orbitron',sans-serif;font-size:3rem;font-weight:900;line-height:1; }
-    .poll-unit { font-size:.75rem;color:rgba(232,244,255,.35);letter-spacing:.1em; }
-    .poll-bar-wrap { height:8px;background:rgba(255,255,255,.06);overflow:hidden;margin-bottom:8px; }
-    .poll-bar { height:100%;transition:width .8s ease,background .8s; }
-    .poll-zones { display:flex;justify-content:space-between;font-size:.6rem;color:rgba(232,244,255,.25);font-family:'Orbitron',sans-serif;letter-spacing:.06em;margin-bottom:14px; }
-    .poll-breakdown { display:flex;flex-direction:column;gap:6px; }
-    .pb-row { display:flex;align-items:center;gap:8px; }
-    .pb-label { font-size:.7rem;color:rgba(232,244,255,.4);letter-spacing:.06em;width:90px;flex-shrink:0; }
-    .pb-bar-wrap { flex:1;height:3px;background:rgba(255,255,255,.06); }
-    .pb-bar { height:100%;transition:width .6s; }
-    .pb-val { font-family:'Orbitron',sans-serif;font-size:.62rem;color:rgba(232,244,255,.4);width:32px;text-align:right; }
-    .disaster-panel { background:rgba(8,15,34,.7);border:1px solid rgba(255,92,92,.1); }
-    .dp-head { padding:14px 18px;border-bottom:1px solid rgba(255,92,92,.08); }
-    .dp-title { font-family:'Orbitron',sans-serif;font-size:.6rem;letter-spacing:.2em;color:var(--red);text-transform:uppercase; }
-    .dp-body { padding:14px 18px; }
-    .disaster-rate { display:flex;align-items:baseline;gap:6px;margin-bottom:12px; }
-    .dr-num { font-family:'Orbitron',sans-serif;font-size:2.2rem;font-weight:900; }
-    .dr-label { font-size:.72rem;color:rgba(232,244,255,.3);letter-spacing:.06em; }
-    .disaster-list { display:flex;flex-direction:column;gap:6px; }
-    .dis-item { display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(255,92,92,.04);border:1px solid rgba(255,92,92,.08); }
-    .dis-icon { font-size:1rem;flex-shrink:0; }
-    .dis-info { flex:1;min-width:0; }
-    .dis-name { font-size:.72rem;font-family:'Orbitron',sans-serif;letter-spacing:.06em;color:rgba(232,244,255,.6); }
-    .dis-time { font-size:.65rem;color:rgba(232,244,255,.25);margin-top:1px; }
-    .dis-sev { font-size:.58px;padding:2px 6px;font-family:'Orbitron',sans-serif;letter-spacing:.08em;white-space:nowrap;font-size:.58rem; }
-    .dis-sev.high { background:rgba(255,92,92,.15);color:var(--red);border:1px solid rgba(255,92,92,.2); }
-    .dis-sev.med { background:rgba(255,184,0,.12);color:var(--yellow);border:1px solid rgba(255,184,0,.2); }
-    .no-disasters { text-align:center;padding:20px;color:rgba(232,244,255,.2);font-size:.78rem;letter-spacing:.08em; }
-
-    /* PERF */
-    .perf-row { display:grid;grid-template-columns:repeat(3,1fr);gap:12px; }
-    .perf-card { padding:20px;background:rgba(8,15,34,.7);border:1px solid rgba(255,255,255,.05);position:relative;overflow:hidden;transition:border-color .2s; }
-    .perf-card:hover { border-color:rgba(0,255,178,.12); }
-    .perf-card-label { font-family:'Orbitron',sans-serif;font-size:.55rem;letter-spacing:.2em;color:rgba(232,244,255,.35);text-transform:uppercase;margin-bottom:10px; }
-    .perf-card-value { font-family:'Orbitron',sans-serif;font-size:1.3rem;font-weight:900;margin-bottom:8px; }
-    .perf-card-bar { height:3px;background:rgba(255,255,255,.06);overflow:hidden;margin-bottom:8px; }
-    .perf-card-fill { height:100%;transition:width .8s ease; }
-
-    /* NEOBOT BUTTON */
-    .neobot-bar { padding:8px 32px 40px;display:flex;justify-content:center;animation:fadeUp .5s .5s both; }
-    .btn-neobot { display:inline-flex;align-items:center;gap:14px;font-family:'Orbitron',sans-serif;font-size:.78rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;padding:16px 48px;border:none;cursor:pointer;background:linear-gradient(135deg,#7B2FBE,#4a1a8a);color:#fff;position:relative;overflow:hidden;clip-path:polygon(12px 0%,100% 0%,calc(100% - 12px) 100%,0% 100%);transition:box-shadow .3s,transform .2s;min-height:44px; }
-    .btn-neobot::before { content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.15),transparent);transform:translateX(-100%);transition:transform .5s; }
-    .btn-neobot:hover::before { transform:translateX(100%); }
-    .btn-neobot:hover { box-shadow:0 0 40px rgba(123,47,190,.7),0 0 80px rgba(123,47,190,.3);transform:translateY(-2px); }
-    .btn-neobot-icon { font-size:1.3rem;animation:botBob 2s ease-in-out infinite; }
-    @keyframes botBob { 0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)} }
-
-    /* MODAL */
-    .modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:500;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);padding:16px; }
-    .modal-overlay.show { display:flex; }
-    .modal-box { background:#070e24;border:1px solid rgba(0,255,178,.2);padding:32px;max-width:420px;width:100%;animation:mIn .25s ease; }
-    @keyframes mIn { from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none} }
-    .modal-title { font-family:'Orbitron',sans-serif;font-size:1rem;color:var(--green);margin-bottom:8px; }
-    .modal-body-text { font-size:.88rem;color:rgba(232,244,255,.5);line-height:1.65;margin-bottom:24px; }
-    .modal-btns { display:flex;gap:10px;flex-wrap:wrap; }
-    .modal-btn { flex:1;min-width:100px;padding:12px;font-family:'Orbitron',sans-serif;font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;border:1px solid rgba(0,255,178,.2);background:transparent;color:var(--green);transition:all .2s;min-height:44px; }
-    .modal-btn:hover { background:rgba(0,255,178,.1); }
-    .modal-btn.cancel { border-color:rgba(255,255,255,.1);color:rgba(232,244,255,.35); }
-    .modal-btn.cancel:hover { background:rgba(255,255,255,.05); }
-
-    @keyframes fadeUp { from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none} }
-    .game-row { animation:fadeUp .5s .1s both; }
-    .stats-row { animation:fadeUp .5s .2s both; }
-    .content-row { animation:fadeUp .5s .3s both; }
-    .perf-row { animation:fadeUp .5s .4s both; }
-
-    /* RESPONSIVE */
-    @media(max-width:900px) {
-      .content-row { grid-template-columns:1fr; }
-      .stats-row { grid-template-columns:repeat(3,1fr); }
-      .perf-row { grid-template-columns:1fr 1fr; }
-      .dashboard { padding:16px 16px 32px; }
-      .topbar { padding:0 16px; }
-      .tb-nav a { padding:6px 10px;font-size:.52rem; }
-    }
-    @media(max-width:600px) {
-      .stats-row { grid-template-columns:1fr 1fr; }
-      .perf-row { grid-template-columns:1fr; }
-      .tb-nav { display:none; }
-      .topbar { padding:0 14px; }
-      .stat-value { font-size:1.3rem; }
-      .poll-num { font-size:2.2rem; }
-      .dr-num { font-size:1.8rem; }
-      .game-card { padding:20px 16px; }
-      .btn-game { padding:12px 20px;font-size:.65rem;width:100%;justify-content:center; }
-      .history-table th,.history-table td { padding:7px 8px;font-size:.72rem; }
-      .history-table th:nth-child(4),.history-table td:nth-child(4),
-      .history-table th:nth-child(5),.history-table td:nth-child(5) { display:none; }
-      .modal-box { padding:24px 18px; }
-      .perf-card { padding:16px; }
-      .neobot-bar { padding:8px 16px 32px; }
-      .btn-neobot { padding:14px 28px;font-size:.65rem; }
-    }
-    @media(max-width:400px) {
-      .stats-row { grid-template-columns:1fr 1fr;gap:8px; }
-      .stat-card { padding:14px 10px; }
-      .stat-value { font-size:1.2rem; }
-    }
-  </style>
+}
+html, body { min-height: 100%; background: var(--bg); color: var(--white); font-family: 'Rajdhani', sans-serif; cursor: none; overflow-x: hidden; }
+#cursor { position:fixed;width:12px;height:12px;border:2px solid var(--green);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:transform .1s;mix-blend-mode:screen; }
+#cursor-trail { position:fixed;width:28px;height:28px;border:1px solid rgba(0,255,178,.2);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:left .12s ease,top .12s ease; }
+body::before { content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.06) 2px,rgba(0,0,0,.06) 4px);pointer-events:none;z-index:1; }
+#bg-canvas { position:fixed;inset:0;width:100%;height:100%;z-index:0;opacity:.6; }
+.content { position:relative;z-index:10;min-height:100vh;display:flex;flex-direction:column; }
+.topbar {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:0 32px;
+      height:56px;
+      background:rgba(5,8,22,.97);
+      border-bottom:1px solid var(--border);
+      flex-shrink:0;
+}
+.tb-logo { font-family:'Orbitron',sans-serif;font-weight:900;font-size:.95rem;letter-spacing:.15em;color:var(--green);text-shadow:0 0 18px rgba(0,255,178,.5); }
+.tb-logo span { color:var(--cyan); }
+.tb-nav { display:flex;gap:4px; }
+.tb-nav a {
+      font-family:'Orbitron',sans-serif;font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;
+      padding:7px 14px;color:rgba(232,244,255,.35);text-decoration:none;
+      border:1px solid transparent;transition:all .2s;cursor:none;
+}
+.tb-nav a:hover { color:var(--cyan);border-color:rgba(0,209,255,.2); }
+.tb-nav a.active { color:var(--green);border-color:rgba(0,255,178,.2);background:rgba(0,255,178,.05); }
+.tb-right { display:flex;align-items:center;gap:10px; }
+.tb-time { font-family:'Orbitron',sans-serif;font-size:.6rem;color:rgba(0,255,178,.35);letter-spacing:.12em; }
+.dashboard { padding:24px 32px 40px;display:flex;flex-direction:column;gap:20px;flex:1; }
+.sec-label { font-family:'Orbitron',sans-serif;font-size:.55rem;letter-spacing:.3em;color:rgba(0,255,178,.4);text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px; }
+.sec-label::before { content:'';width:3px;height:10px;background:var(--green);opacity:.6; }
+.game-row { display:grid;grid-template-columns:1fr;gap:16px; }
+.game-card {
+      padding:28px 28px;border:1px solid rgba(0,255,178,.1);
+      background:rgba(8,15,34,.7);position:relative;overflow:hidden;
+      transition:border-color .25s,background .25s;
+}
+.game-card::before { content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,255,178,.04) 0%,transparent 60%);pointer-events:none; }
+.game-card:hover { border-color:rgba(0,255,178,.3);background:rgba(8,15,34,.9); }
+.game-card.new-game::before { background:linear-gradient(135deg,rgba(0,255,178,.06) 0%,transparent 60%); }
+.gc-icon { font-size:2rem;margin-bottom:14px;display:block;line-height:1; }
+.gc-title { font-family:'Orbitron',sans-serif;font-size:.9rem;font-weight:700;letter-spacing:.1em;color:var(--white);margin-bottom:6px; }
+.gc-desc { font-size:.85rem;color:rgba(232,244,255,.4);line-height:1.6;letter-spacing:.03em;margin-bottom:20px; }
+.gc-meta { display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px; }
+.gc-tag { font-size:.6rem;font-family:'Orbitron',sans-serif;letter-spacing:.1em;padding:3px 8px;border:1px solid rgba(0,255,178,.15);color:rgba(0,255,178,.6); }
+.btn-game {
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      font-family:'Orbitron',sans-serif;
+      font-size:.72rem;
+      font-weight:700;
+      letter-spacing:.15em;
+      text-transform:uppercase;
+      padding:12px 28px;
+      border:none;
+      cursor:none;
+      clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);
+      transition:box-shadow .25s,transform .2s;
+      position:relative;
+      overflow:hidden;
+}
+.btn-game::before { content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent);transform:translateX(-100%);transition:transform .4s; }
+.btn-game:hover::before { transform:translateX(100%); }
+.btn-game.primary { background:var(--green);color:#050816; }
+.btn-game.primary:hover { box-shadow:0 0 28px rgba(0,255,178,.5);transform:translateY(-1px); }
+.btn-game:disabled { opacity:.3;cursor:not-allowed;transform:none; }
+.stats-row { display:grid;grid-template-columns:repeat(5,1fr);gap:12px; }
+.stat-card {
+      padding:18px 16px;
+      border:1px solid rgba(255,255,255,.05);
+      background:rgba(8,15,34,.6);
+      position:relative;
+      overflow:hidden;
+      transition:border-color .2s;
+}
+.stat-card::after { content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--c,var(--green)); }
+.stat-card:hover { border-color:rgba(0,255,178,.15); }
+.stat-label { font-family:'Orbitron',sans-serif;font-size:.52rem;letter-spacing:.18em;color:rgba(232,244,255,.35);text-transform:uppercase;margin-bottom:6px; }
+.stat-value { font-family:'Orbitron',sans-serif;font-size:1.7rem;font-weight:900;color:var(--c,var(--green));line-height:1; }
+.stat-unit { font-size:.65rem;color:rgba(232,244,255,.3);margin-top:3px;letter-spacing:.06em; }
+.stat-delta { font-size:.65rem;margin-top:5px;letter-spacing:.06em; }
+.stat-delta.up { color:var(--green); }
+.stat-delta.down { color:var(--red); }
+.perf-badge {
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      font-family:'Orbitron',sans-serif;
+      font-size:.62rem;
+      letter-spacing:.12em;
+      padding:6px 14px;
+      border-radius:1px;
+      text-transform:uppercase;
+}
+.perf-badge.excellent { background:rgba(0,255,178,.1);border:1px solid rgba(0,255,178,.3);color:var(--green); }
+.perf-badge.good      { background:rgba(0,209,255,.1);border:1px solid rgba(0,209,255,.3);color:var(--cyan); }
+.perf-badge.moderate  { background:rgba(255,184,0,.1);border:1px solid rgba(255,184,0,.3);color:var(--yellow); }
+.perf-badge.poor      { background:rgba(255,92,92,.1);border:1px solid rgba(255,92,92,.3);color:var(--red); }
+.perf-dot { width:6px;height:6px;border-radius:50%;background:currentColor;animation:pulse 1.5s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.6)} }
+.content-row { display:grid;grid-template-columns:1fr 380px;gap:20px; }
+.history-panel {
+      background:rgba(8,15,34,.7);
+      border:1px solid var(--border);
+      display:flex;
+      flex-direction:column;
+}
+.panel-head {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:16px 20px;
+      border-bottom:1px solid var(--border);
+      flex-shrink:0;
+}
+.panel-head-title { font-family:'Orbitron',sans-serif;font-size:.65rem;letter-spacing:.2em;color:var(--green);text-transform:uppercase; }
+.panel-head-sub { font-size:.72rem;color:rgba(232,244,255,.3);letter-spacing:.04em; }
+.chart-area { padding:20px;flex:1; }
+#scoreChart { width:100%;height:200px;display:block; }
+.history-table { width:100%;border-collapse:collapse; }
+.history-table th {
+      font-family:'Orbitron',sans-serif;
+      font-size:.52rem;
+      letter-spacing:.18em;
+      color:rgba(232,244,255,.3);
+      text-transform:uppercase;
+      text-align:left;
+      padding:8px 12px;
+      border-bottom:1px solid rgba(255,255,255,.04);
+      background:rgba(0,0,0,.2);
+}
+.history-table td { padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.03);font-size:.82rem;letter-spacing:.04em; }
+.history-table tr:hover td { background:rgba(0,255,178,.02); }
+.history-table tr:last-child td { border-bottom:none; }
+.score-cell { font-family:'Orbitron',sans-serif;font-weight:700; }
+.crown-icon { font-size:.85rem;margin-left:5px;filter:drop-shadow(0 0 6px rgba(255,184,0,.7)); }
+.empty-history { text-align:center;padding:40px 20px;color:rgba(232,244,255,.2);font-size:.82rem;letter-spacing:.08em; }
+.right-col { display:flex;flex-direction:column;gap:16px; }
+.metric-panel {
+      background:rgba(8,15,34,.7);
+      border:1px solid var(--border);
+}
+.mp-head { padding:14px 18px;border-bottom:1px solid var(--border); }
+.mp-title { font-family:'Orbitron',sans-serif;font-size:.6rem;letter-spacing:.2em;color:var(--cyan);text-transform:uppercase; }
+.mp-body { padding:16px 18px; }
+.poll-gauge { text-align:center;margin-bottom:16px; }
+.poll-num { font-family:'Orbitron',sans-serif;font-size:3rem;font-weight:900;line-height:1; }
+.poll-unit { font-size:.75rem;color:rgba(232,244,255,.35);letter-spacing:.1em; }
+.poll-bar-wrap { height:8px;background:rgba(255,255,255,.06);border-radius:0;overflow:hidden;margin-bottom:8px; }
+.poll-bar { height:100%;transition:width .8s ease,background .8s; }
+.poll-zones { display:flex;justify-content:space-between;font-size:.6rem;color:rgba(232,244,255,.25);font-family:'Orbitron',sans-serif;letter-spacing:.06em;margin-bottom:14px; }
+.poll-breakdown { display:flex;flex-direction:column;gap:6px; }
+.pb-row { display:flex;align-items:center;gap:8px; }
+.pb-label { font-size:.7rem;color:rgba(232,244,255,.4);letter-spacing:.06em;width:90px;flex-shrink:0; }
+.pb-bar-wrap { flex:1;height:3px;background:rgba(255,255,255,.06); }
+.pb-bar { height:100%;transition:width .6s; }
+.pb-val { font-family:'Orbitron',sans-serif;font-size:.62rem;color:rgba(232,244,255,.4);width:32px;text-align:right; }
+.disaster-panel {
+      background:rgba(8,15,34,.7);
+      border:1px solid rgba(255,92,92,.1);
+}
+.dp-head { padding:14px 18px;border-bottom:1px solid rgba(255,92,92,.08); }
+.dp-title { font-family:'Orbitron',sans-serif;font-size:.6rem;letter-spacing:.2em;color:var(--red);text-transform:uppercase; }
+.dp-body { padding:14px 18px; }
+.disaster-rate { display:flex;align-items:baseline;gap:6px;margin-bottom:12px; }
+.dr-num { font-family:'Orbitron',sans-serif;font-size:2.2rem;font-weight:900; }
+.dr-label { font-size:.72rem;color:rgba(232,244,255,.3);letter-spacing:.06em; }
+.disaster-list { display:flex;flex-direction:column;gap:6px; }
+.dis-item { display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(255,92,92,.04);border:1px solid rgba(255,92,92,.08); }
+.dis-icon { font-size:1rem;flex-shrink:0; }
+.dis-info { flex:1; }
+.dis-name { font-size:.72rem;font-family:'Orbitron',sans-serif;letter-spacing:.06em;color:rgba(232,244,255,.6); }
+.dis-time { font-size:.65rem;color:rgba(232,244,255,.25);margin-top:1px; }
+.dis-sev { font-size:.58rem;padding:2px 6px;font-family:'Orbitron',sans-serif;letter-spacing:.08em; }
+.dis-sev.high { background:rgba(255,92,92,.15);color:var(--red);border:1px solid rgba(255,92,92,.2); }
+.dis-sev.med  { background:rgba(255,184,0,.12);color:var(--yellow);border:1px solid rgba(255,184,0,.2); }
+.no-disasters { text-align:center;padding:20px;color:rgba(232,244,255,.2);font-size:.78rem;letter-spacing:.08em; }
+.perf-row { display:grid;grid-template-columns:repeat(3,1fr);gap:12px; }
+.perf-card {
+      padding:20px;
+      background:rgba(8,15,34,.7);
+      border:1px solid rgba(255,255,255,.05);
+      position:relative;
+      overflow:hidden;
+      transition:border-color .2s;
+}
+.perf-card:hover { border-color:rgba(0,255,178,.12); }
+.perf-card-label { font-family:'Orbitron',sans-serif;font-size:.55rem;letter-spacing:.2em;color:rgba(232,244,255,.35);text-transform:uppercase;margin-bottom:10px; }
+.perf-card-value { font-family:'Orbitron',sans-serif;font-size:1.3rem;font-weight:900;margin-bottom:8px; }
+.perf-card-bar { height:3px;background:rgba(255,255,255,.06);overflow:hidden;margin-bottom:8px; }
+.perf-card-fill { height:100%;transition:width .8s ease; }
+.modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:500;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px); }
+.modal-overlay.show { display:flex; }
+.modal-box { background:#070e24;border:1px solid rgba(0,255,178,.2);padding:32px;max-width:420px;width:92%;animation:mIn .25s ease; }
+@keyframes mIn { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} } .modal-title { font-family:'Orbitron',sans-serif;font-size:1rem;color:var(--green);margin-bottom:8px; }
+.modal-body { font-size:.88rem;color:rgba(232,244,255,.5);line-height:1.65;margin-bottom:24px; }
+.modal-btns { display:flex;gap:10px; }
+.modal-btn { flex:1;padding:11px;font-family:'Orbitron',sans-serif;font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;cursor:none;border:1px solid rgba(0,255,178,.2);background:transparent;color:var(--green);transition:all .2s; }
+.modal-btn:hover { background:rgba(0,255,178,.1); }
+.modal-btn.cancel { border-color:rgba(255,255,255,.1);color:rgba(232,244,255,.35); }
+.modal-btn.cancel:hover { background:rgba(255,255,255,.05); }
+@keyframes fadeUp { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:none} }
+.game-row    { animation:fadeUp .5s .1s both; }
+.stats-row   { animation:fadeUp .5s .2s both; }
+.content-row { animation:fadeUp .5s .3s both; }
+.perf-row    { animation:fadeUp .5s .4s both; }
+.neobot-bar {
+      padding:28px 32px 40px;display:flex;
+      justify-content:center;
+      animation:fadeUp .5s .5s both;
+}
+.btn-neobot {
+      display:inline-flex;
+      align-items:center;
+      gap:14px;
+      font-family:'Orbitron',sans-serif;font-size:.78rem;font-weight:700;
+      letter-spacing:.18em;
+      text-transform:uppercase;
+      padding:16px 48px;
+      border:none;cursor:none;
+      background:linear-gradient(135deg,#7B2FBE,#4a1a8a);
+      color:#fff;
+      position:relative;
+      overflow:hidden;
+      clip-path:polygon(12px 0%,100% 0%,calc(100% - 12px) 100%,0% 100%);
+      transition:box-shadow .3s,transform .2s;
+}
+.btn-neobot::before {
+      content:'';
+      position:absolute;
+      inset:0;
+      background:linear-gradient(90deg,transparent,rgba(255,255,255,.15),transparent);
+      transform:translateX(-100%);
+      transition:transform .5s;
+}
+.btn-neobot:hover::before { transform:translateX(100%); }
+.btn-neobot:hover { box-shadow:0 0 40px rgba(123,47,190,.7),0 0 80px rgba(123,47,190,.3);transform:translateY(-2px); }
+.btn-neobot-icon { font-size:1.3rem;animation:botBob 2s ease-in-out infinite; }
+@keyframes botBob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
+.btn-neobot-pulse {
+      position:absolute;
+      inset:0;
+      background:linear-gradient(135deg,rgba(123,47,190,.4),rgba(0,209,255,.15));
+      animation:neoPulse 3s ease-in-out infinite;
+      opacity:0;
+}
+@keyframes neoPulse { 0%,100%{opacity:0} 50%{opacity:1} }
+.neobot-overlay { position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:600;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(6px); }
+.neobot-overlay.show { display:flex; }
+.neobot-modal {
+      width:100%;
+      max-width:680px;
+      background:#070e24;
+      border:1px solid rgba(123,47,190,.4);
+      border-bottom:none;
+      animation:slideUp .3s ease;
+      display:flex;
+      flex-direction:column;
+      max-height:72vh;
+}
+@keyframes slideUp { from{transform:translateY(100%);opacity:0} to{transform:none;opacity:1} }
+.nb-head {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:16px 20px;
+      border-bottom:1px solid rgba(123,47,190,.25);
+      flex-shrink:0;
+}
+.nb-head-left { display:flex;align-items:center;gap:12px; }
+.nb-avatar {
+      width:36px;
+      height:36px;
+      border-radius:50%;
+      background:linear-gradient(135deg,#7B2FBE,#00D1FF);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:1rem;
+      flex-shrink:0;
+      box-shadow:0 0 14px rgba(123,47,190,.5);
+}
+.nb-title { font-family:'Orbitron',sans-serif;font-size:.72rem;letter-spacing:.15em;color:#c084fc; }
+.nb-sub { font-size:.68rem;color:rgba(232,244,255,.3);letter-spacing:.04em;margin-top:1px; }
+.nb-close {
+      font-size:1.2rem;
+      background:transparent;
+      border:none;
+      color:rgba(232,244,255,.3);
+      cursor:none;
+      padding:4px 8px;
+      transition:color .2s;
+}
+.nb-close:hover { color:var(--white); }
+.nb-messages {
+      flex:1;
+      overflow-y:auto;
+      padding:16px 20px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      scrollbar-width:thin;
+      scrollbar-color:rgba(123,47,190,.3) transparent;
+}
+.nb-msg { display:flex;gap:10px;animation:fadeUp .25s ease; }
+.nb-msg.user { flex-direction:row-reverse; }
+.nb-bubble {
+      max-width:75%;
+      padding:10px 14px;
+      font-size:.82rem;
+      line-height:1.6;
+      letter-spacing:.03em;
+      border-radius:2px;
+}
+.nb-msg.bot .nb-bubble {
+      background:rgba(123,47,190,.15);
+      border:1px solid rgba(123,47,190,.25);
+      color:var(--white);
+      border-radius:0 8px 8px 8px;
+}
+.nb-msg.user .nb-bubble {
+      background:rgba(0,209,255,.1);
+      border:1px solid rgba(0,209,255,.25);
+      color:var(--white);
+      border-radius:8px 0 8px 8px;
+      text-align:right;
+}
+.nb-msg-avatar {
+      width:28px;
+      height:28px;
+      border-radius:50%;
+      flex-shrink:0;
+      margin-top:2px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:.75rem;
+}
+.nb-msg.bot .nb-msg-avatar { background:linear-gradient(135deg,#7B2FBE,#00D1FF); }
+.nb-msg.user .nb-msg-avatar { background:rgba(0,209,255,.2);border:1px solid rgba(0,209,255,.3); }
+.nb-typing { display:flex;gap:4px;align-items:center;padding:4px 0; }
+.nb-typing span { width:6px;height:6px;border-radius:50%;background:#a855f7;animation:typeDot 1.2s infinite; }
+.nb-typing span:nth-child(2){animation-delay:.2s}
+.nb-typing span:nth-child(3){animation-delay:.4s}
+@keyframes typeDot{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}
+.nb-quick { display:flex;flex-wrap:wrap;gap:6px;padding:0 20px 12px; }
+.nb-chip {
+      font-family:'Orbitron',sans-serif;
+      font-size:.55rem;
+      letter-spacing:.1em;
+      padding:5px 10px;
+      border:1px solid rgba(123,47,190,.35);
+      background:rgba(123,47,190,.08);
+      color:#c084fc;
+      cursor:none;
+      transition:all .2s;
+}
+.nb-chip:hover { background:rgba(123,47,190,.2);border-color:rgba(123,47,190,.6); }
+.nb-input-row {
+      display:flex;
+      gap:8px;
+      padding:12px 20px 16px;
+      border-top:1px solid rgba(123,47,190,.2);
+      flex-shrink:0;
+}
+.nb-input {
+      flex:1; 
+      background:rgba(123,47,190,.08); 
+      border:1px solid rgba(123,47,190,.3);
+      color:var(--white);
+      font-family:'Rajdhani',sans-serif;
+      font-size:.88rem;
+      padding:10px 14px;
+      letter-spacing:.04em;
+      outline:none;
+      transition:border-color .2s;
+}
+.nb-input::placeholder { color:rgba(232,244,255,.25); }
+.nb-input:focus { border-color:rgba(123,47,190,.7); }
+.nb-send {
+      padding:10px 20px;
+      background:linear-gradient(135deg,#7B2FBE,#4a1a8a);
+      border:none;
+      color:#fff;
+      font-family:'Orbitron',sans-serif;
+      font-size:.6rem;
+      letter-spacing:.12em;
+      cursor:none;
+      transition:box-shadow .2s;
+}
+.nb-send:hover { box-shadow:0 0 16px rgba(123,47,190,.6); }
+@media(max-width:900px){
+.content-row { grid-template-columns:1fr; }
+.stats-row   { grid-template-columns:repeat(3,1fr); }
+.perf-row    { grid-template-columns:1fr 1fr; }
+.game-row    { grid-template-columns:1fr; }
+.dashboard   { padding:16px; }
+.neobot-modal { max-height:85vh; }
+}
+</style>
 </head>
 <body>
 <div id="cursor"></div>
@@ -198,557 +427,595 @@
 <canvas id="bg-canvas"></canvas>
 
 <div class="modal-overlay" id="new-modal">
-  <div class="modal-box">
-    <div class="modal-title">🆕 Start New Game?</div>
-    <div class="modal-body-text">This will clear your current city and reset all scores. Your history will be saved. Are you sure?</div>
-    <div class="modal-btns">
-      <button class="modal-btn cancel" onclick="closeModal('new-modal')">Cancel</button>
-      <button class="modal-btn" onclick="startNewGame()">Start New Game</button>
-    </div>
-  </div>
+<div class="modal-box">
+<div class="modal-title">🆕 Start New Game?</div>
+<div class="modal-body">This will clear your current city and reset all scores. Your history will be saved. Are you sure you want to start fresh?</div>
+<div class="modal-btns">
+<button class="modal-btn cancel" onclick="closeModal('new-modal')">Cancel</button>
+<button class="modal-btn" onclick="startNewGame()">Start New Game</button>
+</div>
+</div>
+</div>
+
+<div class="neobot-overlay" id="neobot-overlay" onclick="handleOverlayClick(event)">
+<div class="neobot-modal" id="neobot-modal">
+<div class="nb-head">
+<div class="nb-head-left">
+<div class="nb-avatar">🤖</div>
+<div>
+<div class="nb-title">NEOBOT — City AI Advisor</div>
+<div class="nb-sub">Powered by NeoCity Intelligence</div>
+</div>
+</div>
+<button class="nb-close" onclick="closeNeobot()">✕</button>
+</div>
+<div class="nb-messages" id="nb-messages"></div>
+<div class="nb-quick" id="nb-quick">
+<button class="nb-chip" onclick="sendQuick('How can I reduce pollution?')">Reduce Pollution</button>
+<button class="nb-chip" onclick="sendQuick('How do I increase my city score?')">Boost Score</button>
+<button class="nb-chip" onclick="sendQuick('What buildings should I place next?')">Building Tips</button>
+<button class="nb-chip" onclick="sendQuick('How do I prevent disasters?')">Prevent Disasters</button>
+<button class="nb-chip" onclick="sendQuick('Analyse my current city performance')">Analyse City</button>
+</div>
+<div class="nb-input-row">
+<input class="nb-input" id="nb-input" placeholder="Ask NeoBot anything about your city..." onkeydown="if(event.key==='Enter')sendMessage()"/>
+<button class="nb-send" onclick="sendMessage()">SEND ▶</button>
+</div>
+</div>
 </div>
 
 <div class="content">
-  <div class="topbar">
-    <div class="tb-logo">NEO<span>CITY</span> AI</div>
-    <nav class="tb-nav">
-      <a href="index.html">Home</a>
-      <a href="builder.html">City Builder</a>
-      <a href="dashboard.html" class="active">Dashboard</a>
-      <a href="neobot.html">NeoBot</a>
-    </nav>
-    <div class="tb-right">
-      <div class="tb-time" id="tb-time">--:--:--</div>
-    </div>
-  </div>
-
-  <div class="dashboard">
-
-    <div>
-      <div class="sec-label">// Game Options</div>
-      <div class="game-row">
-        <div class="game-card">
-          <span class="gc-icon">🌆</span>
-          <div class="gc-title">New Game</div>
-          <div class="gc-desc">Start a fresh city from scratch. Design your urban layout and work towards a sustainable future with a clean slate.</div>
-          <div class="gc-meta">
-            <span class="gc-tag">Clean Slate</span>
-            <span class="gc-tag">New Strategy</span>
-            <span class="gc-tag">Score Reset</span>
-          </div>
-          <button class="btn-game primary" onclick="document.getElementById('new-modal').classList.add('show')">▶ Start New Game</button>
-        </div>
-      </div>
-    </div>
-
-    <div>
-      <div class="sec-label">// Current City Stats</div>
-      <div class="stats-row">
-        <div class="stat-card" style="--c:var(--green)">
-          <div class="stat-label">City Score</div>
-          <div class="stat-value" id="s-score">—</div>
-          <div class="stat-unit">points</div>
-        </div>
-        <div class="stat-card" style="--c:var(--red)">
-          <div class="stat-label">Pollution</div>
-          <div class="stat-value" id="s-poll">—</div>
-          <div class="stat-unit">% index</div>
-        </div>
-        <div class="stat-card" style="--c:var(--yellow)">
-          <div class="stat-label">Happiness</div>
-          <div class="stat-value" id="s-hap">—</div>
-          <div class="stat-unit">% index</div>
-        </div>
-        <div class="stat-card" style="--c:var(--cyan)">
-          <div class="stat-label">Buildings</div>
-          <div class="stat-value" id="s-build">—</div>
-          <div class="stat-unit">placed</div>
-        </div>
-        <div class="stat-card" style="--c:var(--purple)">
-          <div class="stat-label">Disasters</div>
-          <div class="stat-value" id="s-dis">0</div>
-          <div class="stat-unit">total events</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="content-row">
-      <div class="history-panel">
-        <div class="panel-head">
-          <div>
-            <div class="panel-head-title">Score History</div>
-            <div class="panel-head-sub">Per-session performance over time</div>
-          </div>
-          <div id="overall-badge"></div>
-        </div>
-        <div class="chart-area">
-          <canvas id="scoreChart"></canvas>
-        </div>
-        <div style="padding:0 20px 16px;overflow-x:auto;">
-          <table class="history-table">
-            <thead>
-              <tr>
-                <th>#</th><th>Score</th><th>Pollution</th>
-                <th>Buildings</th><th>Disasters</th>
-                <th>Performance</th><th>Date</th>
-              </tr>
-            </thead>
-            <tbody id="history-tbody">
-              <tr><td colspan="7" class="empty-history">No game history yet.</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="right-col">
-        <div class="metric-panel">
-          <div class="mp-head"><div class="mp-title">Pollution Rate Tracker</div></div>
-          <div class="mp-body">
-            <div class="poll-gauge">
-              <div class="poll-num" id="poll-gauge-num" style="color:var(--green)">—</div>
-              <div class="poll-unit">POLLUTION INDEX</div>
-            </div>
-            <div class="poll-bar-wrap"><div class="poll-bar" id="poll-bar" style="width:0%"></div></div>
-            <div class="poll-zones"><span>CLEAN</span><span>MODERATE</span><span>HIGH</span><span>CRITICAL</span></div>
-            <div class="poll-breakdown">
-              <div class="pb-row"><span class="pb-label">Industrial</span><div class="pb-bar-wrap"><div class="pb-bar" id="pb-industrial"></div></div><span class="pb-val" id="pb-ind-val">—</span></div>
-              <div class="pb-row"><span class="pb-label">Residential</span><div class="pb-bar-wrap"><div class="pb-bar" id="pb-residential"></div></div><span class="pb-val" id="pb-res-val">—</span></div>
-              <div class="pb-row"><span class="pb-label">Transport</span><div class="pb-bar-wrap"><div class="pb-bar" id="pb-transport"></div></div><span class="pb-val" id="pb-tr-val">—</span></div>
-              <div class="pb-row"><span class="pb-label">Green Cover</span><div class="pb-bar-wrap"><div class="pb-bar" id="pb-green"></div></div><span class="pb-val" id="pb-gr-val">—</span></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="disaster-panel">
-          <div class="dp-head"><div class="dp-title">⚠ Disaster Events</div></div>
-          <div class="dp-body">
-            <div class="disaster-rate">
-              <div class="dr-num" id="dr-num" style="color:var(--green)">0</div>
-              <div class="dr-label">total disasters recorded</div>
-            </div>
-            <div class="disaster-list" id="disaster-list">
-              <div class="no-disasters">No disasters recorded yet.</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div>
-      <div class="sec-label">// Performance Analysis</div>
-      <div class="perf-row">
-        <div class="perf-card">
-          <div class="perf-card-label">Overall Performance</div>
-          <div class="perf-card-value" id="perf-overall" style="color:var(--green)">—</div>
-          <div class="perf-card-bar"><div class="perf-card-fill" id="perf-overall-bar" style="width:0%"></div></div>
-          <div id="perf-overall-badge"></div>
-        </div>
-        <div class="perf-card">
-          <div class="perf-card-label">Pollution Control</div>
-          <div class="perf-card-value" id="perf-poll" style="color:var(--green)">—</div>
-          <div class="perf-card-bar"><div class="perf-card-fill" id="perf-poll-bar" style="width:0%"></div></div>
-          <div id="perf-poll-badge"></div>
-        </div>
-        <div class="perf-card">
-          <div class="perf-card-label">Sustainability Rating</div>
-          <div class="perf-card-value" id="perf-sus" style="color:var(--green)">—</div>
-          <div class="perf-card-bar"><div class="perf-card-fill" id="perf-sus-bar" style="width:0%"></div></div>
-          <div id="perf-sus-badge"></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="neobot-bar">
-      <button class="btn-neobot" onclick="window.location.href='neobot.html?mode=score'">
-        <span class="btn-neobot-icon">🤖</span>
-        Get Help from NeoBot
-      </button>
-    </div>
-
-  </div>
+<div class="topbar">
+<div class="tb-logo">NEO<span>CITY</span> AI</div>
+<nav class="tb-nav">
+<a href="index.html">Home</a>
+<a href="city.html">City Builder</a>
+<a href="dashboard.html" class="active">Dashboard</a>
+</nav>
+<div class="tb-right">
+<div class="tb-time" id="tb-time">--:--:--</div>
+</div>
 </div>
 
-<script>
-/* ══════════════════════════════════════════
-   BUILDING EFFECTS — identical to builder.html
-   Any change in builder MUST be mirrored here
-══════════════════════════════════════════ */
-const BMAP = {
-  solar:   { pollution:-8,  happiness:+6,  energy:+15, water:0,  sustainability:+10 },
-  forest:  { pollution:-14, happiness:+9,  energy:-1,  water:+6, sustainability:+12 },
-  bus:     { pollution:-9,  happiness:+11, energy:-4,  water:0,  sustainability:+8  },
-  factory: { pollution:+20, happiness:-6,  energy:-12, water:-9, sustainability:-14 },
-  recycle: { pollution:-11, happiness:+6,  energy:-2,  water:+4, sustainability:+9  },
-  home:    { pollution:+4,  happiness:+13, energy:-5,  water:-4, sustainability:+3  },
-};
+<div class="dashboard">
+<div>
+<div class="sec-label">// Game Options</div>
+<div class="game-row">
+<div class="game-card new-game">
+<span class="gc-icon">🌆</span>
+<div class="gc-title">New Game</div>
+<div class="gc-desc">Start a fresh city from scratch. Design your urban layout, place buildings, and work towards a sustainable future with a clean slate.</div>
+<div class="gc-meta">
+<span class="gc-tag">Clean Slate</span>
+<span class="gc-tag">New Strategy</span>
+<span class="gc-tag">Score Reset</span>
+</div>
+<button class="btn-game primary" onclick="document.getElementById('new-modal').classList.add('show')">
+▶ Start New Game
+</button>
+</div>
+</div>
+</div>
 
-/* Base values — identical to builder.html state.metrics initial values */
-const BASE = { pollution:18, happiness:62, energy:50, water:72, sustainability:45 };
+<div>
+<div class="sec-label">// Current Session Stats</div>
+<div class="stats-row">
+<div class="stat-card" style="--c:var(--green)">
+<div class="stat-label">City Score</div>
+<div class="stat-value" id="s-score">—</div>
+<div class="stat-unit">points</div>
+<div class="stat-delta" id="s-score-delta"></div>
+</div>
+<div class="stat-card" style="--c:var(--red)">
+<div class="stat-label">Pollution</div>
+<div class="stat-value" id="s-poll">—</div>
+<div class="stat-unit">% index</div>
+<div class="stat-delta" id="s-poll-delta"></div>
+</div>
+<div class="stat-card" style="--c:var(--yellow)">
+<div class="stat-label">Happiness</div>
+<div class="stat-value" id="s-hap">—</div>
+<div class="stat-unit">% index</div>
+</div>
+<div class="stat-card" style="--c:var(--cyan)">
+<div class="stat-label">Buildings</div>
+<div class="stat-value" id="s-build">—</div>
+<div class="stat-unit">placed</div>
+</div>
+<div class="stat-card" style="--c:var(--purple)">
+<div class="stat-label">Disasters</div>
+<div class="stat-value" id="s-dis">0</div>
+<div class="stat-unit">total events</div>
+</div>
+</div>
+</div>
 
-/* Score formula — identical to builder.html renderScore() */
-function computeScoreFromMetrics(metrics, placed) {
-  const sus = metrics.sustainability;
-  const hap = metrics.happiness;
-  const pol = 100 - metrics.pollution;
-  return Math.round((sus * 0.4 + hap * 0.3 + pol * 0.3) * (1 + placed * 0.015));
-}
+<div class="content-row">
+<div class="history-panel">
+<div class="panel-head">
+<div>
+<div class="panel-head-title">Score History</div>
+<div class="panel-head-sub">Per-session performance over time</div>
+</div>
+<div id="overall-badge"></div>
+</div>
+<div class="chart-area">
+<canvas id="scoreChart"></canvas>
+</div>
+<div style="padding:0 20px 16px;">
+<table class="history-table" id="history-table">
+<thead>
+<tr>
+<th>#</th>
+<th>Score</th>
+<th>Pollution</th>
+<th>Buildings</th>
+<th>Disasters</th>
+<th>Performance</th>
+<th>Timestamp</th>
+</tr>
+</thead>
+<tbody id="history-tbody">
+<tr><td colspan="7" class="empty-history">No game history yet. Play a game to see your scores here.</td></tr>
+</tbody>
+</table>
+</div>
+</div>
 
-/* Recompute all metrics from a grid array */
-function computeMetricsFromGrid(grid) {
-  let pol = BASE.pollution, hap = BASE.happiness,
-      energy = BASE.energy, water = BASE.water, sus = BASE.sustainability;
-  grid.filter(Boolean).forEach(id => {
-    const b = BMAP[id]; if (!b) return;
-    pol    += b.pollution;
-    hap    += b.happiness;
-    energy += b.energy;
-    water  += b.water;
-    sus    += b.sustainability;
-  });
-  const clamp = v => Math.max(0, Math.min(100, Math.round(v)));
-  return {
-    pollution:      clamp(pol),
-    happiness:      clamp(hap),
-    energy:         clamp(energy),
-    water:          clamp(water),
-    sustainability: clamp(sus),
-    placed:         grid.filter(Boolean).length
-  };
-}
+<div class="right-col">
+<div class="metric-panel">
+<div class="mp-head">
+<div class="mp-title">Pollution Rate Tracker</div>
+</div>
+<div class="mp-body">
+<div class="poll-gauge">
+<div class="poll-num" id="poll-gauge-num" style="color:var(--green)">—</div>
+<div class="poll-unit">POLLUTION INDEX</div>
+</div>
+<div class="poll-bar-wrap">
+<div class="poll-bar" id="poll-bar" style="width:0%;background:var(--green)"></div>
+</div>
+<div class="poll-zones">
+<span>CLEAN</span>
+<span>MODERATE</span>
+<span>HIGH</span>
+<span>CRITICAL</span>
+</div>
+<div class="poll-breakdown">
+<div class="pb-row">
+<span class="pb-label">Industrial</span>
+<div class="pb-bar-wrap"><div class="pb-bar" id="pb-industrial" style="width:0%;background:var(--red)"></div></div>
+<span class="pb-val" id="pb-ind-val">—</span>
+</div>
+<div class="pb-row">
+<span class="pb-label">Residential</span>
+<div class="pb-bar-wrap"><div class="pb-bar" id="pb-residential" style="width:0%;background:var(--yellow)"></div></div>
+<span class="pb-val" id="pb-res-val">—</span>
+</div>
+<div class="pb-row">
+<span class="pb-label">Transport</span>
+<div class="pb-bar-wrap"><div class="pb-bar" id="pb-transport" style="width:0%;background:var(--cyan)"></div></div>
+<span class="pb-val" id="pb-tr-val">—</span>
+</div>
+<div class="pb-row">
+<span class="pb-label">Green Cover</span>
+<div class="pb-bar-wrap"><div class="pb-bar" id="pb-green" style="width:0%;background:var(--green)"></div></div>
+<span class="pb-val" id="pb-gr-val">—</span>
+</div>
+</div>
+</div>
+</div>
 
-/* ══════════════════════════════════════════
-   CURSOR
-══════════════════════════════════════════ */
+<div class="disaster-panel">
+<div class="dp-head">
+<div class="dp-title">⚠ Disaster Events</div>
+</div>
+<div class="dp-body">
+<div class="disaster-rate">
+<div class="dr-num" id="dr-num" style="color:var(--green)">0</div>
+<div class="dr-label">total disasters recorded</div>
+</div>
+<div class="disaster-list" id="disaster-list">
+<div class="no-disasters">No disasters recorded yet.</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<div>
+<div class="sec-label">// Performance Analysis</div>
+<div class="perf-row">
+<div class="perf-card">
+<div class="perf-card-label">Overall Performance</div>
+<div class="perf-card-value" id="perf-overall" style="color:var(--green)">—</div>
+<div class="perf-card-bar"><div class="perf-card-fill" id="perf-overall-bar" style="width:0%;background:var(--green)"></div></div>
+<div id="perf-overall-badge"></div>
+</div>
+<div class="perf-card">
+<div class="perf-card-label">Pollution Performance</div>
+<div class="perf-card-value" id="perf-poll" style="color:var(--green)">—</div>
+<div class="perf-card-bar"><div class="perf-card-fill" id="perf-poll-bar" style="width:0%;background:var(--green)"></div></div>
+<div id="perf-poll-badge"></div>
+</div>
+<div class="perf-card">
+<div class="perf-card-label">Sustainability Rating</div>
+<div class="perf-card-value" id="perf-sus" style="color:var(--green)">—</div>
+<div class="perf-card-bar"><div class="perf-card-fill" id="perf-sus-bar" style="width:0%;background:var(--green)"></div></div>
+<div id="perf-sus-badge"></div>
+</div>
+</div>
+</div>
+
+<div class="neobot-bar">
+<button class="btn-neobot" onclick="openNeobot()">
+<div class="btn-neobot-pulse"></div>
+<span class="btn-neobot-icon">🤖</span>
+Get Help from NeoBot
+</button>
+</div>
+</div></div><script>
 const cursor = document.getElementById('cursor');
 const trail  = document.getElementById('cursor-trail');
-const isTouch = ('ontouchstart' in window)||(navigator.maxTouchPoints>0);
-if (!isTouch) {
-  cursor.style.display='block'; trail.style.display='block';
-  document.body.style.cursor='none';
-  document.addEventListener('mousemove', e => {
-    cursor.style.left=e.clientX+'px'; cursor.style.top=e.clientY+'px';
-    trail.style.left=e.clientX+'px';  trail.style.top=e.clientY+'px';
-  });
-  document.querySelectorAll('button,a,.game-card,.stat-card,.perf-card').forEach(el => {
-    el.addEventListener('mouseenter',()=>cursor.style.transform='translate(-50%,-50%) scale(2)');
-    el.addEventListener('mouseleave',()=>cursor.style.transform='translate(-50%,-50%) scale(1)');
-  });
-}
+document.addEventListener('mousemove', e => {
+  cursor.style.left = e.clientX+'px'; cursor.style.top = e.clientY+'px';
+  trail.style.left  = e.clientX+'px'; trail.style.top  = e.clientY+'px';
+});
+document.querySelectorAll('button,a,.game-card,.stat-card,.perf-card').forEach(el => {
+  el.addEventListener('mouseenter', () => cursor.style.transform='translate(-50%,-50%) scale(2)');
+  el.addEventListener('mouseleave', () => cursor.style.transform='translate(-50%,-50%) scale(1)');
+});
 
-/* ══════════════════════════════════════════
-   BACKGROUND CANVAS
-══════════════════════════════════════════ */
 (function(){
-  const c=document.getElementById('bg-canvas'),ctx=c.getContext('2d');
+  const c=document.getElementById('bg-canvas'), ctx=c.getContext('2d');
   let W,H,t=0;
   const resize=()=>{W=c.width=window.innerWidth;H=c.height=window.innerHeight;};
   resize(); window.addEventListener('resize',resize);
   const pts=Array.from({length:50},()=>({x:Math.random(),y:Math.random(),vx:(Math.random()-.5)*.0003,vy:(Math.random()-.5)*.0003,r:.5+Math.random()*1.2,a:Math.random()}));
   function draw(){
-    t+=.006;ctx.clearRect(0,0,W,H);ctx.fillStyle='#050816';ctx.fillRect(0,0,W,H);
+    t+=.006; ctx.clearRect(0,0,W,H);
+    ctx.fillStyle='#050816';
+    ctx.fillRect(0,0,W,H);
     for(let i=0;i<W;i+=48){ctx.strokeStyle=`rgba(0,255,178,${.008+.005*Math.sin(t+i*.01)})`;ctx.lineWidth=.4;ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,H);ctx.stroke();}
     for(let j=0;j<H;j+=48){ctx.strokeStyle=`rgba(0,255,178,${.008+.005*Math.sin(t+j*.01)})`;ctx.lineWidth=.4;ctx.beginPath();ctx.moveTo(0,j);ctx.lineTo(W,j);ctx.stroke();}
     [{x:.1,y:.2,r:300,c:'0,209,255',a:.04},{x:.9,y:.8,r:280,c:'0,255,178',a:.035},{x:.5,y:.4,r:200,c:'123,47,190',a:.03}].forEach(g=>{
       const gr=ctx.createRadialGradient(g.x*W,g.y*H,0,g.x*W,g.y*H,g.r);
-      gr.addColorStop(0,`rgba(${g.c},${g.a})`);gr.addColorStop(1,'transparent');
-      ctx.fillStyle=gr;ctx.beginPath();ctx.arc(g.x*W,g.y*H,g.r,0,Math.PI*2);ctx.fill();
+      gr.addColorStop(0,`rgba(${g.c},${g.a})`); gr.addColorStop(1,'transparent');
+      ctx.fillStyle=gr; ctx.beginPath(); ctx.arc(g.x*W,g.y*H,g.r,0,Math.PI*2); ctx.fill();
     });
     pts.forEach(p=>{
-      p.x+=p.vx;p.y+=p.vy;
-      if(p.x<0)p.x=1;if(p.x>1)p.x=0;if(p.y<0)p.y=1;if(p.y>1)p.y=0;
-      ctx.beginPath();ctx.arc(p.x*W,p.y*H,p.r,0,Math.PI*2);
-      ctx.fillStyle=`rgba(0,255,178,${.15+.2*Math.abs(Math.sin(t+p.a*8))})`;ctx.fill();
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.x<0)p.x=1; if(p.x>1)p.x=0; if(p.y<0)p.y=1; if(p.y>1)p.y=0;
+      ctx.beginPath(); ctx.arc(p.x*W,p.y*H,p.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(0,255,178,${.15+.2*Math.abs(Math.sin(t+p.a*8))})`; ctx.fill();
     });
     requestAnimationFrame(draw);
   }
   draw();
 })();
 
-/* ══════════════════════════════════════════
-   CLOCK
-══════════════════════════════════════════ */
-function updateClock(){document.getElementById('tb-time').textContent=new Date().toTimeString().slice(0,8);}
-setInterval(updateClock,1000); updateClock();
+function updateClock(){ document.getElementById('tb-time').textContent=new Date().toTimeString().slice(0,8); }
+setInterval(updateClock,1000); 
+updateClock();
 
-/* ══════════════════════════════════════════
-   HELPERS
-══════════════════════════════════════════ */
-function getPerfFromPollution(pol){
-  if(pol<=20)return{label:'Excellent',cls:'excellent'};
-  if(pol<=40)return{label:'Good',cls:'good'};
-  if(pol<=65)return{label:'Moderate',cls:'moderate'};
-  return{label:'Poor',cls:'poor'};
-}
-function getPerfFromScore(s){
-  if(s>=80)return{label:'Excellent',cls:'excellent'};
-  if(s>=55)return{label:'Good',cls:'good'};
-  if(s>=30)return{label:'Moderate',cls:'moderate'};
-  return{label:'Poor',cls:'poor'};
-}
-function badge(cfg){return`<span class="perf-badge ${cfg.cls}"><span class="perf-dot"></span>${cfg.label}</span>`;}
-function getColor(p){return p>=70?'var(--green)':p>=40?'var(--yellow)':'var(--red)';}
-function setText(id,v){const el=document.getElementById(id);if(el)el.textContent=v;}
-function setBar(bId,pct,color,vId,v){
-  const b=document.getElementById(bId);if(b){b.style.width=pct+'%';b.style.background=color;}
-  const vv=document.getElementById(vId);if(vv)vv.textContent=v;
-}
-function setPerfCard(id,valText,pct,color,perf){
-  const el=document.getElementById(id);el.textContent=valText;el.style.color=color;
-  document.getElementById(id+'-bar').style.width=pct+'%';
-  document.getElementById(id+'-bar').style.background=color;
-  document.getElementById(id+'-badge').innerHTML=badge(perf);
+// --- STATE MANAGEMENT AND PERSISTENCE ---
+
+if(!localStorage.getItem('neocity_history')) {
+  localStorage.setItem('neocity_history', JSON.stringify([
+    { score: 480, pollution: 42, buildings: 10, disasters: 2, perf: 'Moderate', time: '14:20:15' },
+    { score: 710, pollution: 25, buildings: 18, disasters: 0, perf: 'Good', time: '16:45:32' }
+  ]));
 }
 
-/* ══════════════════════════════════════════
-   SCORE CHART
-══════════════════════════════════════════ */
-function drawScoreChart(history){
-  const canvas=document.getElementById('scoreChart');
-  const W=canvas.offsetWidth||300,H=200;
-  canvas.width=W*devicePixelRatio;canvas.height=H*devicePixelRatio;
-  canvas.style.width=W+'px';canvas.style.height=H+'px';
-  const ctx=canvas.getContext('2d');ctx.scale(devicePixelRatio,devicePixelRatio);
-  ctx.fillStyle='rgba(0,0,0,.2)';ctx.fillRect(0,0,W,H);
-  if(!history||history.length===0){
-    ctx.fillStyle='rgba(232,244,255,.2)';ctx.font='11px Orbitron,sans-serif';ctx.textAlign='center';
-    ctx.fillText('No history yet — complete a game first',W/2,H/2);return;
+if(!localStorage.getItem('neocity_current')) {
+  localStorage.setItem('neocity_current', JSON.stringify({
+    score: 850,
+    pollution: 28,
+    happiness: 84,
+    buildings: 22,
+    disasters: 1,
+    industrial: 35,
+    residential: 55,
+    transport: 40,
+    green: 75,
+    disaster_events: [{name: 'Grid Overload', time: '5m ago', severity: 'med'}]
+  }));
+}
+
+function getPerfFromPollution(pol) {
+  if (pol <= 20) return { label:'Excellent', cls:'excellent' };
+  if (pol <= 45) return { label:'Good',      cls:'good' };
+  if (pol <= 70) return { label:'Moderate',  cls:'moderate' };
+  return               { label:'Poor',       cls:'poor' };
+}
+
+function getPerfFromScore(score) {
+  if (score >= 80) return { label:'Excellent', cls:'excellent' };
+  if (score >= 55) return { label:'Good',      cls:'good' };
+  if (score >= 35) return { label:'Moderate',  cls:'moderate' };
+  return                  { label:'Poor',       cls:'poor' };
+}
+
+function badge(cfg){ return `<span class="perf-badge ${cfg.cls}"><span class="perf-dot"></span>${cfg.label}</span>`; }
+
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+function startNewGame() {
+  const current = JSON.parse(localStorage.getItem('neocity_current'));
+  const history = JSON.parse(localStorage.getItem('neocity_history'));
+  
+  if (current && current.buildings > 0) {
+    const polPerf = getPerfFromPollution(current.pollution);
+    history.unshift({
+      score: current.score,
+      pollution: current.pollution,
+      buildings: current.buildings,
+      disasters: current.disasters,
+      perf: polPerf.label,
+      time: new Date().toTimeString().slice(0,8)
+    });
+    localStorage.setItem('neocity_history', JSON.stringify(history));
   }
-  const scores=history.map(h=>h.score),maxS=Math.max(...scores,100);
-  const pad={t:20,r:16,b:28,l:40},cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;
-  [0,25,50,75,100].forEach(pct=>{
-    const y=pad.t+cH-(pct/100)*cH;
-    ctx.strokeStyle='rgba(0,255,178,.07)';ctx.lineWidth=.5;
-    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+cW,y);ctx.stroke();
-    ctx.fillStyle='rgba(232,244,255,.2)';ctx.font='8px Orbitron,sans-serif';ctx.textAlign='right';
-    ctx.fillText(Math.round(maxS*pct/100),pad.l-4,y+3);
+
+  const freshSession = {
+    score: 150,
+    pollution: 15,
+    happiness: 90,
+    buildings: 1,
+    disasters: 0,
+    industrial: 10,
+    residential: 20,
+    transport: 15,
+    green: 85,
+    disaster_events: []
+  };
+  localStorage.setItem('neocity_current', JSON.stringify(freshSession));
+  closeModal('new-modal');
+  renderDashboard();
+}
+
+function drawScoreChart(history, currentScore) {
+  const canvas = document.getElementById('scoreChart');
+  const W = canvas.offsetWidth; const H = 200;
+  canvas.width = W * window.devicePixelRatio;
+  canvas.height = H * window.devicePixelRatio;
+  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  
+  ctx.fillStyle = 'rgba(5,8,22,0.4)';
+  ctx.fillRect(0,0,W,H);
+
+  const data = [...history].slice(0, 6).reverse();
+  data.push({ score: currentScore }); 
+  
+  const padding = 40;
+  const activeW = W - padding * 2;
+  const activeH = H - 60;
+  const maxScore = Math.max(...data.map(d => d.score), 100);
+  
+  let points = data.map((d, index) => {
+    let x = padding + (index / (Math.max(data.length - 1, 1))) * activeW;
+    let y = (H - 25) - (d.score / maxScore) * activeH;
+    return {x, y};
   });
-  const xs=history.map((_,i)=>pad.l+(history.length===1?cW/2:i/(history.length-1)*cW));
-  const ys=scores.map(s=>pad.t+cH-(s/maxS)*cH);
-  const grad=ctx.createLinearGradient(0,pad.t,0,pad.t+cH);
-  grad.addColorStop(0,'rgba(0,255,178,.18)');grad.addColorStop(1,'rgba(0,255,178,.01)');
-  ctx.beginPath();ctx.moveTo(xs[0],pad.t+cH);
-  xs.forEach((x,i)=>ctx.lineTo(x,ys[i]));
-  ctx.lineTo(xs[xs.length-1],pad.t+cH);ctx.closePath();ctx.fillStyle=grad;ctx.fill();
-  ctx.beginPath();xs.forEach((x,i)=>i===0?ctx.moveTo(x,ys[i]):ctx.lineTo(x,ys[i]));
-  ctx.strokeStyle='rgba(0,255,178,.8)';ctx.lineWidth=2;ctx.stroke();
-  const pols=history.map(h=>pad.t+cH-((h.pollution||0)/100)*cH);
-  ctx.beginPath();xs.forEach((x,i)=>i===0?ctx.moveTo(x,pols[i]):ctx.lineTo(x,pols[i]));
-  ctx.strokeStyle='rgba(255,92,92,.5)';ctx.lineWidth=1.5;ctx.setLineDash([4,3]);ctx.stroke();ctx.setLineDash([]);
-  xs.forEach((x,i)=>{
-    ctx.beginPath();ctx.arc(x,ys[i],3.5,0,Math.PI*2);
-    ctx.fillStyle='#00FFB2';ctx.strokeStyle='#050816';ctx.lineWidth=1.5;ctx.fill();ctx.stroke();
-    ctx.fillStyle='rgba(232,244,255,.25)';ctx.font='8px Orbitron,sans-serif';ctx.textAlign='center';
-    ctx.fillText('G'+(i+1),x,H-6);
+
+  if(points.length > 1) {
+    let grad = ctx.createLinearGradient(0,0,0,H);
+    grad.addColorStop(0, 'rgba(0, 255, 172, 0.12)');
+    grad.addColorStop(1, 'rgba(0, 255, 172, 0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, H - 15);
+    points.forEach(p => ctx.lineTo(p.x, p.y));
+    ctx.lineTo(points[points.length-1].x, H - 15);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  ctx.strokeStyle = '#00FFB2';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  points.forEach((p, idx) => {
+    if(idx === 0) ctx.moveTo(p.x, p.y);
+    else ctx.lineTo(p.x, p.y);
   });
-  ctx.fillStyle='rgba(0,255,178,.7)';ctx.font='8px Orbitron,sans-serif';ctx.textAlign='left';
-  ctx.fillRect(pad.l,6,12,2);ctx.fillText('Score',pad.l+16,10);
-  ctx.strokeStyle='rgba(255,92,92,.6)';ctx.lineWidth=1.5;ctx.setLineDash([4,3]);
-  ctx.beginPath();ctx.moveTo(pad.l+65,7);ctx.lineTo(pad.l+77,7);ctx.stroke();ctx.setLineDash([]);
-  ctx.fillStyle='rgba(255,92,92,.7)';ctx.fillText('Pollution',pad.l+82,10);
+  ctx.stroke();
+
+  points.forEach((p, idx) => {
+    ctx.fillStyle = '#050816';
+    ctx.strokeStyle = idx === points.length - 1 ? '#FFB800' : '#00D1FF';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(232,244,255,0.8)';
+    ctx.font = '9px Orbitron, sans-serif';
+    ctx.fillText(data[idx].score, p.x - 4, p.y - 10);
+  });
 }
 
-/* ══════════════════════════════════════════
-   LOAD DASHBOARD
-   All metrics derived from nc_grid using the
-   EXACT same BMAP + BASE + formula as builder.
-   nc_city_score is used as fallback only if
-   nc_metrics isn't present (older saves).
-══════════════════════════════════════════ */
-function loadDashboard(){
-  const gridRaw     = localStorage.getItem('nc_grid');
-  const metricsRaw  = localStorage.getItem('nc_metrics'); // saved by builder on complete
-  const history     = JSON.parse(localStorage.getItem('nc_history')  || '[]');
-  const disasters   = JSON.parse(localStorage.getItem('nc_disasters') || '[]');
-  const hasSave     = !!gridRaw;
+function renderDashboard() {
+  const current = JSON.parse(localStorage.getItem('neocity_current'));
+  const history = JSON.parse(localStorage.getItem('neocity_history'));
 
-  /* ── Compute real metrics ── */
-  let m = null;
-  if (metricsRaw) {
-    // Prefer metrics saved by builder (most accurate — computed live during gameplay)
-    m = JSON.parse(metricsRaw);
-  } else if (gridRaw) {
-    // Fallback: recompute from grid using same formula
-    const grid = JSON.parse(gridRaw);
-    m = computeMetricsFromGrid(grid);
-    m.score = computeScoreFromMetrics(m, m.placed);
-  }
+  const allScores = history.map(h => h.score);
+  if (current) allScores.push(current.score);
+  const highestScore = Math.max(...allScores, 0);
 
-  // Score: recompute from grid always for accuracy (nc_city_score may be stale)
-  let liveScore = 0;
-  if (gridRaw) {
-    const grid = JSON.parse(gridRaw);
-    const liveM = computeMetricsFromGrid(grid);
-    liveScore = computeScoreFromMetrics(liveM, liveM.placed);
-    // Also sync nc_city_score to keep it accurate
-    localStorage.setItem('nc_city_score', liveScore);
-    if (!m) m = liveM;
-  }
+  document.getElementById('s-score').innerHTML = current.score + (current.score === highestScore && current.score > 0 ? ' <span class="crown-icon">👑</span>' : '');
+  document.getElementById('s-poll').textContent = current.pollution;
+  document.getElementById('s-hap').textContent = current.happiness;
+  document.getElementById('s-build').textContent = current.buildings;
+  document.getElementById('s-dis').textContent = current.disasters;
 
-  /* ── Stats row ── */
-  if (m) {
-    setText('s-score', liveScore);
-    setText('s-poll',  m.pollution + '%');
-    setText('s-hap',   m.happiness + '%');
-    setText('s-build', m.placed);
+  const pGaugeNum = document.getElementById('poll-gauge-num');
+  const pBar = document.getElementById('poll-bar');
+  pGaugeNum.textContent = current.pollution + '%';
+  pBar.style.width = current.pollution + '%';
+
+  if(current.pollution <= 25) {
+    pGaugeNum.style.color = 'var(--green)'; pBar.style.background = 'var(--green)';
+  } else if(current.pollution <= 50) {
+    pGaugeNum.style.color = 'var(--cyan)'; pBar.style.background = 'var(--cyan)';
+  } else if(current.pollution <= 75) {
+    pGaugeNum.style.color = 'var(--yellow)'; pBar.style.background = 'var(--yellow)';
   } else {
-    ['s-score','s-poll','s-hap','s-build'].forEach(id => setText(id,'—'));
-  }
-  setText('s-dis', disasters.length);
-
-  /* ── Pollution tracker — real values from grid ── */
-  if (m && hasSave) {
-    const pol = m.pollution;
-    const pollColor = pol<25?'var(--green)':pol<50?'var(--yellow)':pol<75?'var(--red)':'#ff2222';
-    document.getElementById('poll-gauge-num').textContent = pol + '%';
-    document.getElementById('poll-gauge-num').style.color = pollColor;
-    document.getElementById('poll-bar').style.width = pol + '%';
-    document.getElementById('poll-bar').style.background = pollColor;
-
-    // Breakdown based on actual building counts from grid
-    const grid = JSON.parse(gridRaw);
-    const total = Math.max(1, m.placed);
-    const factories = grid.filter(b => b === 'factory').length;
-    const homes     = grid.filter(b => b === 'home').length;
-    const buses     = grid.filter(b => b === 'bus').length;
-    const greenery  = grid.filter(b => b === 'forest' || b === 'recycle').length;
-
-    // Each factory contributes +20 pollution, shown as proportion of total pollution
-    const totalRawPol = factories*20 + homes*4;
-    const totalRawGreen = greenery*12.5 + buses*9; // rough average reduction
-
-    const indPct  = Math.min(100, totalRawPol > 0 ? Math.round((factories*20)/Math.max(totalRawPol,1)*100) : 0);
-    const resPct  = Math.min(100, totalRawPol > 0 ? Math.round((homes*4)/Math.max(totalRawPol,1)*100) : 0);
-    const trPct   = Math.min(100, m.placed > 0 ? Math.round(buses/total*100) : 0);
-    const grPct   = Math.min(100, m.placed > 0 ? Math.round(greenery/total*100) : 0);
-
-    setBar('pb-industrial', indPct, 'var(--red)',    'pb-ind-val', factories  + ' bldgs');
-    setBar('pb-residential', resPct,'var(--yellow)', 'pb-res-val', homes      + ' bldgs');
-    setBar('pb-transport',   trPct, 'var(--cyan)',   'pb-tr-val',  buses      + ' bldgs');
-    setBar('pb-green',       grPct, 'var(--green)',  'pb-gr-val',  greenery   + ' bldgs');
+    pGaugeNum.style.color = 'var(--red)'; pBar.style.background = 'var(--red)';
   }
 
-  /* ── Disaster list ── */
-  setText('dr-num', disasters.length);
-  document.getElementById('dr-num').style.color =
-    disasters.length === 0 ? 'var(--green)' : disasters.length < 3 ? 'var(--yellow)' : 'var(--red)';
-  document.getElementById('disaster-list').innerHTML = disasters.length === 0
-    ? '<div class="no-disasters">✅ No disasters — great city management!</div>'
-    : disasters.slice(-5).reverse().map(d => `
+  document.getElementById('pb-industrial').style.width = current.industrial + '%';
+  document.getElementById('pb-ind-val').textContent = current.industrial + '%';
+  document.getElementById('pb-residential').style.width = current.residential + '%';
+  document.getElementById('pb-res-val').textContent = current.residential + '%';
+  document.getElementById('pb-transport').style.width = current.transport + '%';
+  document.getElementById('pb-tr-val').textContent = current.transport + '%';
+  document.getElementById('pb-green').style.width = current.green + '%';
+  document.getElementById('pb-gr-val').textContent = current.green + '%';
+
+  document.getElementById('dr-num').textContent = current.disasters;
+  const dList = document.getElementById('disaster-list');
+  if(!current.disaster_events || current.disaster_events.length === 0) {
+    dList.innerHTML = `<div class="no-disasters">No active core breakdowns recorded.</div>`;
+  } else {
+    dList.innerHTML = current.disaster_events.map(ev => `
       <div class="dis-item">
-        <span class="dis-icon">${d.icon||'⚠️'}</span>
+        <span class="dis-icon">🚨</span>
         <div class="dis-info">
-          <div class="dis-name">${d.name}</div>
-          <div class="dis-time">${d.time||'—'}</div>
+          <div class="dis-name">${ev.name}</div>
+          <div class="dis-time">${ev.time}</div>
         </div>
-        <span class="dis-sev ${d.severity==='high'?'high':'med'}">${(d.severity||'med').toUpperCase()}</span>
-      </div>`).join('');
+        <span class="dis-sev ${ev.severity}">${ev.severity.toUpperCase()}</span>
+      </div>
+    `).join('');
+  }
 
-  /* ── Score history table with 👑 on highest ── */
-  drawScoreChart(history);
-  const tbody = document.getElementById('history-tbody');
-  if (history.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" class="empty-history">No game history yet. Complete a game to track scores.</td></tr>';
-    document.getElementById('overall-badge').innerHTML = '';
+  const scoreDelta = document.getElementById('s-score-delta');
+  const pollDelta = document.getElementById('s-poll-delta');
+  if(history.length > 0) {
+    let prev = history[0];
+    let sDiff = current.score - prev.score;
+    let pDiff = current.pollution - prev.pollution;
+
+    scoreDelta.className = 'stat-delta ' + (sDiff >= 0 ? 'up' : 'down');
+    scoreDelta.textContent = (sDiff >= 0 ? '▲ +' : '▼ ') + sDiff + ' vs last';
+    pollDelta.className = 'stat-delta ' + (pDiff <= 0 ? 'up' : 'down');
+    pollDelta.textContent = (pDiff >= 0 ? '▲ +' : '▼ ') + pDiff + '% shift';
   } else {
-    const maxScore = Math.max(...history.map(h => h.score));
-    const avgScore = Math.round(history.reduce((a,b) => a+b.score, 0) / history.length);
-    document.getElementById('overall-badge').innerHTML =
-      `<div style="font-size:.65rem;color:rgba(232,244,255,.3);margin-bottom:4px;font-family:'Orbitron',sans-serif;letter-spacing:.1em">AVG: ${avgScore}</div>${badge(getPerfFromScore(avgScore))}`;
-    tbody.innerHTML = history.slice().reverse().map((h, i) => {
-      const crown = h.score === maxScore ? ' 👑' : '';
-      return `<tr>
-        <td style="color:rgba(232,244,255,.3);font-family:'Orbitron',sans-serif;font-size:.65rem">${history.length - i}</td>
-        <td class="score-cell" style="color:${h.score>=70?'var(--green)':h.score>=40?'var(--yellow)':'var(--red)'}">${h.score}${crown}</td>
-        <td style="color:${(h.pollution||0)<40?'var(--green)':(h.pollution||0)<70?'var(--yellow)':'var(--red)'}">${h.pollution||0}%</td>
-        <td style="color:var(--cyan)">${h.buildings||0}</td>
-        <td style="color:${(h.disasters||0)===0?'var(--green)':'var(--red)'}">${h.disasters||0}</td>
-        <td>${badge(getPerfFromScore(h.score))}</td>
-        <td style="color:rgba(232,244,255,.3);font-size:.72rem">${h.date||'—'}</td>
-      </tr>`;
+    scoreDelta.textContent = '—'; pollDelta.textContent = '—';
+  }
+
+  let overallVal = Math.max(5, Math.min(100, Math.round((current.score / 12) + current.happiness - current.pollution)));
+  let structuralSust = Math.max(5, Math.min(100, Math.round((current.green * 1.3) - (current.industrial * 0.5))));
+  let pollutionRating = Math.max(5, Math.min(100, 100 - current.pollution));
+
+  document.getElementById('perf-overall').textContent = overallVal + '%';
+  document.getElementById('perf-overall-bar').style.width = overallVal + '%';
+  document.getElementById('perf-overall-badge').innerHTML = badge(getPerfFromScore(overallVal));
+
+  document.getElementById('perf-poll').textContent = pollutionRating + '%';
+  document.getElementById('perf-poll-bar').style.width = pollutionRating + '%';
+  document.getElementById('perf-poll-badge').innerHTML = badge(getPerfFromPollution(current.pollution));
+
+  document.getElementById('perf-sus').textContent = structuralSust + '%';
+  document.getElementById('perf-sus-bar').style.width = structuralSust + '%';
+  document.getElementById('perf-sus-badge').innerHTML = badge(getPerfFromScore(structuralSust));
+  document.getElementById('overall-badge').innerHTML = badge(getPerfFromScore(overallVal));
+
+  const tbody = document.getElementById('history-tbody');
+  if(history.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" class="empty-history">No game history logs captured yet.</td></tr>`;
+  } else {
+    tbody.innerHTML = history.map((h, i) => {
+      const isCrown = h.score === highestScore && h.score > 0;
+      return `
+        <tr>
+          <td>${history.length - i}</td>
+          <td class="score-cell">${h.score}${isCrown ? ' <span class="crown-icon">👑</span>' : ''}</td>
+          <td>${h.pollution}%</td>
+          <td>${h.buildings}</td>
+          <td>${h.disasters}</td>
+          <td>${badge(getPerfFromScore(h.score / 10))}</td>
+          <td style="color:rgba(0,255,178,0.5); font-family: 'Orbitron', sans-serif; font-size:0.7rem;">${h.time || '--:--:--'}</td>
+        </tr>
+      `;
     }).join('');
   }
 
-  /* ── Performance cards — use REAL computed metrics ── */
-  if (m && hasSave) {
-    // Overall: score normalised to 0-100 (max reasonable score ~150)
-    const overallPct  = Math.min(100, Math.round((liveScore / 150) * 100));
-    // Pollution control: invert pollution (low pollution = high performance)
-    const pollCtrlPct = Math.round(100 - m.pollution);
-    // Sustainability: direct from metrics
-    const susPct      = m.sustainability;
-
-    setPerfCard('perf-overall', overallPct + '%',  overallPct,  getColor(overallPct),  getPerfFromScore(overallPct));
-    setPerfCard('perf-poll',    pollCtrlPct + '%', pollCtrlPct, getColor(pollCtrlPct), getPerfFromPollution(m.pollution));
-    setPerfCard('perf-sus',     susPct + '%',      susPct,      getColor(susPct),      getPerfFromScore(susPct));
-  } else {
-    ['perf-overall','perf-poll','perf-sus'].forEach(id => {
-      document.getElementById(id).textContent = 'No Data';
-      document.getElementById(id+'-badge').innerHTML = '';
-    });
-  }
+  drawScoreChart(history, current.score);
 }
 
-/* ══════════════════════════════════════════
-   GAME ACTIONS
-══════════════════════════════════════════ */
-function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+// --- NEOBOT AI ADVISOR INTERFACE ---
+const overlay = document.getElementById('neobot-overlay');
+const nbMessages = document.getElementById('nb-messages');
+const nbInput = document.getElementById('nb-input');
 
-function startNewGame(){
-  // Save current session to history before clearing
-  const gridRaw    = localStorage.getItem('nc_grid');
-  const metricsRaw = localStorage.getItem('nc_metrics');
-  if (gridRaw) {
-    const grid = JSON.parse(gridRaw);
-    const m    = metricsRaw ? JSON.parse(metricsRaw) : computeMetricsFromGrid(grid);
-    const score = computeScoreFromMetrics(m, m.placed);
-    if (score > 0 || m.placed > 0) {
-      const history   = JSON.parse(localStorage.getItem('nc_history')   || '[]');
-      const disasters = JSON.parse(localStorage.getItem('nc_disasters') || '[]');
-      history.push({
-        score:     score,
-        pollution: m.pollution,
-        buildings: m.placed,
-        disasters: disasters.length,
-        date:      new Date().toLocaleDateString()
-      });
-      localStorage.setItem('nc_history', JSON.stringify(history));
-    }
-  }
-  localStorage.removeItem('nc_grid');
-  localStorage.removeItem('nc_counts');
-  localStorage.removeItem('nc_city_score');
-  localStorage.removeItem('nc_metrics');
-  localStorage.removeItem('nc_disasters');
-  closeModal('new-modal');
-  window.location.href = 'builder.html';
-}
+const botResponses = {
+  "pollution": "To clear up contamination index metrics instantly, drop green spaces around dense production matrices.",
+  "score": "Equilibrium yields high structural returns. Keep happiness up, balance layouts, and push production records.",
+  "buildings": "Your systemic index could use a boost. Try arranging clean power frameworks inside the grid space next.",
+  "disasters": "Congestion limits structural safety parameters. Disperse grid assets evenly to mitigate disaster damage fields.",
+  "analyse": "Grid analysis matrix active. Data pools indicate steady output metrics, check pollution curves periodically."
+};
 
-/* ══════════════════════════════════════════
-   DEMO SEED (for judges — only if no history)
-══════════════════════════════════════════ */
-function seedDemo(){
-  if (!localStorage.getItem('nc_history')) {
-    // These scores match what you'd actually get from the builder formula:
-    // score = (sus*0.4 + hap*0.3 + pol*0.3) * (1 + placed*0.015)
-    localStorage.setItem('nc_history', JSON.stringify([
-      {score:34, pollution:72, buildings:8,  disasters:2, date:'2025-05-01'},
-      {score:55, pollution:51, buildings:14, disasters:1, date:'2025-05-04'},
-      {score:71, pollution:38, buildings:20, disasters:0, date:'2025-05-07'},
-      {score:83, pollution:22, buildings:27, disasters:0, date:'2025-05-10'},
-    ]));
-  }
-  if (!localStorage.getItem('nc_disasters')) {
-    localStorage.setItem('nc_disasters', JSON.stringify([
-      {icon:'🌫️', name:'Air Pollution Crisis',  time:'Session 1 · 14:32', severity:'high'},
-      {icon:'💧',  name:'Water Shortage',        time:'Session 1 · 16:10', severity:'med'},
-      {icon:'😤',  name:'Civil Unrest',          time:'Session 2 · 11:45', severity:'med'},
-    ]));
+function openNeobot() {
+  overlay.style.display = 'flex';
+  setTimeout(() => overlay.classList.add('show'), 10);
+  if (nbMessages.children.length === 0) {
+    appendBotMsg("System initialized. State your optimization blueprint path, Developer.");
   }
 }
+function closeNeobot() {
+  overlay.classList.remove('show');
+  setTimeout(() => overlay.style.display = 'none', 300);
+}
+function handleOverlayClick(e) { if (e.target === overlay) closeNeobot(); }
 
-seedDemo();
-loadDashboard();
-window.addEventListener('resize', loadDashboard);
+function appendBotMsg(text) {
+  const msg = document.createElement('div'); msg.className = 'nb-msg bot';
+  msg.innerHTML = `<div class="nb-msg-avatar">🤖</div><div class="nb-bubble">${text}</div>`;
+  nbMessages.appendChild(msg); nbMessages.scrollTop = nbMessages.scrollHeight;
+}
+function appendUserMsg(text) {
+  const msg = document.createElement('div'); msg.className = 'nb-msg user';
+  msg.innerHTML = `<div class="nb-msg-avatar">👤</div><div class="nb-bubble">${text}</div>`;
+  nbMessages.appendChild(msg); nbMessages.scrollTop = nbMessages.scrollHeight;
+}
+
+function sendMessage() {
+  const text = nbInput.value.trim(); if (!text) return;
+  appendUserMsg(text); nbInput.value = '';
+  
+  const ind = document.createElement('div'); ind.className = 'nb-msg bot';
+  ind.innerHTML = `<div class="nb-msg-avatar">🤖</div><div class="nb-bubble"><div class="nb-typing"><span></span><span></span><span></span></div></div>`;
+  nbMessages.appendChild(ind);
+  
+  setTimeout(() => {
+    ind.remove();
+    let low = text.toLowerCase();
+    let match = Object.keys(botResponses).find(k => low.includes(k));
+    appendBotMsg(match ? botResponses[match] : "Core matrix logic running. Keep balancing structural units to scale up city scores.");
+  }, 600);
+}
+
+function sendQuick(phrase) {
+  appendUserMsg(phrase);
+  const ind = document.createElement('div'); ind.className = 'nb-msg bot';
+  ind.innerHTML = `<div class="nb-msg-avatar">🤖</div><div class="nb-bubble"><div class="nb-typing"><span></span><span></span><span></span></div></div>`;
+  nbMessages.appendChild(ind);
+  
+  setTimeout(() => {
+    ind.remove();
+    let low = phrase.toLowerCase();
+    let match = Object.keys(botResponses).find(k => low.includes(k));
+    appendBotMsg(match ? botResponses[match] : "Data stream synchronized.");
+  }, 500);
+}
+
+window.addEventListener('resize', renderDashboard);
+renderDashboard();
 </script>
 </body>
 </html>
