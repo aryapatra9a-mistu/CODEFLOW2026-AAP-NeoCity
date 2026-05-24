@@ -211,7 +211,7 @@ body::before { content:'';position:fixed;inset:0;background:repeating-linear-gra
 .perf-card-value { font-family:'Orbitron',sans-serif;font-size:1.3rem;font-weight:900;margin-bottom:8px; }
 .perf-card-bar { height:3px;background:rgba(255,255,255,.06);overflow:hidden;margin-bottom:8px; }
 .perf-card-fill { height:100%;transition:width .8s ease; }
-.modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:500;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px); }
+.modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9995;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px); }
 .modal-overlay.show { display:flex; }
 .modal-box { background:#070e24;border:1px solid rgba(0,255,178,.2);padding:32px;max-width:420px;width:92%;animation:mIn .25s ease; }
 @keyframes mIn { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} } .modal-title { font-family:'Orbitron',sans-serif;font-size:1rem;color:var(--green);margin-bottom:8px; }
@@ -267,7 +267,7 @@ body::before { content:'';position:fixed;inset:0;background:repeating-linear-gra
       opacity:0;
 }
 @keyframes neoPulse { 0%,100%{opacity:0} 50%{opacity:1} }
-.neobot-overlay { position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:600;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(6px); }
+.neobot-overlay { position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9990;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(6px); }
 .neobot-overlay.show { display:flex; }
 .neobot-modal {
       width:100%;
@@ -490,7 +490,7 @@ body::before { content:'';position:fixed;inset:0;background:repeating-linear-gra
 <span class="gc-tag">New Strategy</span>
 <span class="gc-tag">Score Reset</span>
 </div>
-<button class="btn-game primary" onclick="document.getElementById('new-modal').classList.add('show')">
+<button class="btn-game primary" onclick="openConfirmModal()">
 ▶ Start New Game
 </button>
 </div>
@@ -662,12 +662,17 @@ document.addEventListener('mousemove', e => {
   cursor.style.left = e.clientX+'px'; cursor.style.top = e.clientY+'px';
   trail.style.left  = e.clientX+'px'; trail.style.top  = e.clientY+'px';
 });
+
+function resetCursorScale() {
+  if (cursor) cursor.style.transform = 'translate(-50%, -50%) scale(1)';
+}
+
 function addCursorHoverListeners() {
   document.querySelectorAll('button,a,.game-card,.stat-card,.perf-card,.nb-chip').forEach(el => {
     if(!el.hasAttribute('data-cursor-bound')) {
       el.setAttribute('data-cursor-bound', 'true');
-      el.addEventListener('mouseenter', () => cursor.style.transform='translate(-50%,-50%) scale(2)');
-      el.addEventListener('mouseleave', () => cursor.style.transform='translate(-50%,-50%) scale(1)');
+      el.addEventListener('mouseenter', () => { if(cursor) cursor.style.transform='translate(-50%,-50%) scale(2)'; });
+      el.addEventListener('mouseleave', () => { if(cursor) cursor.style.transform='translate(-50%,-50%) scale(1)'; });
     }
   });
 }
@@ -720,7 +725,15 @@ function getPerfFromScore(score) {
   return                   { label:'Poor',       cls:'poor',      color:'var(--red)' };
 }
 function badge(cfg){ return `<span class="perf-badge ${cfg.cls}"><span class="perf-dot"></span>${cfg.label}</span>`; }
-function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+function openConfirmModal() {
+  document.getElementById('new-modal').classList.add('show');
+}
+
+function closeModal(id) { 
+  document.getElementById(id).classList.remove('show'); 
+  resetCursorScale();
+}
 
 // --- Game State & Simulation Logic ---
 let cityData = {
@@ -738,7 +751,6 @@ function loadCityData() {
   if (stored) {
     cityData = JSON.parse(stored);
   } else {
-    // Default initial mock parameters if no data found
     cityData = {
       score: 485,
       pollution: 34,
@@ -761,7 +773,6 @@ function saveCityData() {
 function startNewGame() {
   let history = JSON.parse(localStorage.getItem('neo_city_history') || '[]');
   
-  // Save current city profile to history matrix data before wiping it clean
   if (cityData.buildings > 0 || cityData.score > 0) {
     const scorePerf = getPerfFromScore(cityData.score);
     history.unshift({
@@ -777,7 +788,7 @@ function startNewGame() {
     localStorage.setItem('neo_city_history', JSON.stringify(history));
   }
 
-  // Wiping and resetting live states entirely
+  // Pure clean data layout wipe
   cityData = {
     score: 0,
     pollution: 0,
@@ -789,13 +800,18 @@ function startNewGame() {
   };
   
   saveCityData();
-  closeModal('new-modal'); // Hides the dark blur screen layout instantly
-  renderDashboard();      // Re-renders graph templates, numbers, progress meters instantly
+  
+  // Close container visually & clear cursor scaling bugs
+  closeModal('new-modal');
+  
+  // Directly force link redirection back to your clean deployment constructor layout tab!
+  window.location.href = "city.html"; 
 }
 
 // --- High Tech Canvas Score Chart ---
 function drawScoreChart(history) {
   const canvas = document.getElementById('scoreChart');
+  if(!canvas) return;
   const W = canvas.offsetWidth; const H = 200;
   canvas.width = W * window.devicePixelRatio;
   canvas.height = H * window.devicePixelRatio;
@@ -976,7 +992,7 @@ function renderDashboard() {
   addCursorHoverListeners();
 }
 
-// --- NeoBot Simulation Smart AI Engine ---
+// --- NeoBot Simulation Engine ---
 const botMessagesContainer = document.getElementById('nb-messages');
 
 function openNeobot() {
@@ -986,7 +1002,10 @@ function openNeobot() {
   }
 }
 
-function closeNeobot() { document.getElementById('neobot-overlay').classList.remove('show'); }
+function closeNeobot() { 
+  document.getElementById('neobot-overlay').classList.remove('show'); 
+  resetCursorScale();
+}
 function handleOverlayClick(e) { if(e.target.id === 'neobot-overlay') closeNeobot(); }
 
 function showBotMessage(text) {
