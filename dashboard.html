@@ -1,693 +1,748 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>NeoCity AI — Dashboard</title>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
-<style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-:root {
-      --bg:#050816;
-      --bg2:#080f22;
-      --bg3:#0c1430;
-      --green:#00FFB2;
-      --cyan:#00D1FF;
-      --red:#FF5C5C;
-      --yellow:#FFB800;
-      --purple:#7B2FBE;
-      --white:#E8F4FF;
-      --border:rgba(0,255,178,0.09);
-}
-html, body { min-height: 100%; background: var(--bg); color: var(--white); font-family: 'Rajdhani', sans-serif; cursor: none; overflow-x: hidden; }
-#cursor { position:fixed;width:12px;height:12px;border:2px solid var(--green);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:transform .1s;mix-blend-mode:screen; }
-#cursor-trail { position:fixed;width:28px;height:28px;border:1px solid rgba(0,255,178,.2);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:left .12s ease,top .12s ease; }
-body::before { content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.06) 2px,rgba(0,0,0,.06) 4px);pointer-events:none;z-index:1; }
-#bg-canvas { position:fixed;inset:0;width:100%;height:100%;z-index:0;opacity:.6; }
-.content { position:relative;z-index:10;min-height:100vh;display:flex;flex-direction:column; }
-.topbar {
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      padding:0 32px;
-      height:56px;
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NeoCity AI — Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:     #050816;
+      --bg2:    #080f22;
+      --bg3:    #0c1430;
+      --green:  #00FFB2;
+      --cyan:   #00D1FF;
+      --red:    #FF5C5C;
+      --yellow: #FFB800;
+      --purple: #7B2FBE;
+      --white:  #E8F4FF;
+      --border: rgba(0,255,178,0.09);
+    }
+    html, body { min-height: 100%; background: var(--bg); color: var(--white); font-family: 'Rajdhani', sans-serif; cursor: none; overflow-x: hidden; }
+
+    /* ── Custom Cursor ── */
+    #cursor { position:fixed;width:12px;height:12px;border:2px solid var(--green);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:transform .1s;mix-blend-mode:screen; }
+    #cursor-trail { position:fixed;width:28px;height:28px;border:1px solid rgba(0,255,178,.2);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:left .12s ease,top .12s ease; }
+
+    /* ── Scanlines ── */
+    body::before { content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.06) 2px,rgba(0,0,0,.06) 4px);pointer-events:none;z-index:1; }
+
+    /* ── Canvas BG ── */
+    #bg-canvas { position:fixed;inset:0;width:100%;height:100%;z-index:0;opacity:.6; }
+
+    /* ── Content wrapper ── */
+    .content { position:relative;z-index:10;min-height:100vh;display:flex;flex-direction:column; }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      display:flex;align-items:center;justify-content:space-between;
+      padding:0 32px;height:56px;
       background:rgba(5,8,22,.97);
       border-bottom:1px solid var(--border);
       flex-shrink:0;
-}
-.tb-logo { font-family:'Orbitron',sans-serif;font-weight:900;font-size:.95rem;letter-spacing:.15em;color:var(--green);text-shadow:0 0 18px rgba(0,255,178,.5); }
-.tb-logo span { color:var(--cyan); }
-.tb-nav { display:flex;gap:4px; }
-.tb-nav a {
+    }
+    .tb-logo { font-family:'Orbitron',sans-serif;font-weight:900;font-size:.95rem;letter-spacing:.15em;color:var(--green);text-shadow:0 0 18px rgba(0,255,178,.5); }
+    .tb-logo span { color:var(--cyan); }
+    .tb-nav { display:flex;gap:4px; }
+    .tb-nav a {
       font-family:'Orbitron',sans-serif;font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;
       padding:7px 14px;color:rgba(232,244,255,.35);text-decoration:none;
       border:1px solid transparent;transition:all .2s;cursor:none;
-}
-.tb-nav a:hover { color:var(--cyan);border-color:rgba(0,209,255,.2); }
-.tb-nav a.active { color:var(--green);border-color:rgba(0,255,178,.2);background:rgba(0,255,178,.05); }
-.tb-right { display:flex;align-items:center;gap:10px; }
-.tb-time { font-family:'Orbitron',sans-serif;font-size:.6rem;color:rgba(0,255,178,.35);letter-spacing:.12em; }
-.dashboard { padding:24px 32px 40px;display:flex;flex-direction:column;gap:20px;flex:1; }
-.sec-label { font-family:'Orbitron',sans-serif;font-size:.55rem;letter-spacing:.3em;color:rgba(0,255,178,.4);text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px; }
-.sec-label::before { content:'';width:3px;height:10px;background:var(--green);opacity:.6; }
-.game-row { display:grid;grid-template-columns:1fr;gap:16px; }
-.game-card {
+    }
+    .tb-nav a:hover { color:var(--cyan);border-color:rgba(0,209,255,.2); }
+    .tb-nav a.active { color:var(--green);border-color:rgba(0,255,178,.2);background:rgba(0,255,178,.05); }
+    .tb-right { display:flex;align-items:center;gap:10px; }
+    .tb-time { font-family:'Orbitron',sans-serif;font-size:.6rem;color:rgba(0,255,178,.35);letter-spacing:.12em; }
+
+    /* ── MAIN GRID ── */
+    .dashboard { padding:24px 32px 40px;display:flex;flex-direction:column;gap:20px;flex:1; }
+
+    /* ── Section label ── */
+    .sec-label { font-family:'Orbitron',sans-serif;font-size:.55rem;letter-spacing:.3em;color:rgba(0,255,178,.4);text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px; }
+    .sec-label::before { content:'';width:3px;height:10px;background:var(--green);opacity:.6; }
+
+    /* ── SCORE BREAKDOWN BANNER ── */
+    .score-breakdown-banner {
+      background: rgba(0,255,178,.04);
+      border: 1px solid rgba(0,255,178,.15);
+      padding: 16px 22px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .sbb-title { font-family:'Orbitron',sans-serif;font-size:.6rem;letter-spacing:.2em;color:var(--green);text-transform:uppercase;white-space:nowrap;flex-shrink:0; }
+    .sbb-items { display:flex;gap:10px;flex-wrap:wrap;flex:1; }
+    .sbb-item { display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.06);padding:6px 10px; }
+    .sbb-emoji { font-size:1rem; }
+    .sbb-label { font-size:.7rem;color:rgba(232,244,255,.4);letter-spacing:.03em; }
+    .sbb-pts { font-family:'Orbitron',sans-serif;font-size:.72rem;font-weight:700; }
+    .sbb-pts.pos { color:var(--green); }
+    .sbb-pts.neg { color:var(--red); }
+    .sbb-total { font-family:'Orbitron',sans-serif;font-size:1.1rem;font-weight:900;color:var(--green);white-space:nowrap;flex-shrink:0; }
+
+    /* ── GAME OPTIONS ROW ── */
+    .game-row { display:grid;grid-template-columns:1fr;gap:16px; }
+
+    .game-card {
       padding:28px 28px;border:1px solid rgba(0,255,178,.1);
       background:rgba(8,15,34,.7);position:relative;overflow:hidden;
       transition:border-color .25s,background .25s;
-}
-.game-card::before { content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,255,178,.04) 0%,transparent 60%);pointer-events:none; }
-.game-card:hover { border-color:rgba(0,255,178,.3);background:rgba(8,15,34,.9); }
-.game-card.new-game::before { background:linear-gradient(135deg,rgba(0,255,178,.06) 0%,transparent 60%); }
-.gc-icon { font-size:2rem;margin-bottom:14px;display:block;line-height:1; }
-.gc-title { font-family:'Orbitron',sans-serif;font-size:.9rem;font-weight:700;letter-spacing:.1em;color:var(--white);margin-bottom:6px; }
-.gc-desc { font-size:.85rem;color:rgba(232,244,255,.4);line-height:1.6;letter-spacing:.03em;margin-bottom:20px; }
-.gc-meta { display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px; }
-.gc-tag { font-size:.6rem;font-family:'Orbitron',sans-serif;letter-spacing:.1em;padding:3px 8px;border:1px solid rgba(0,255,178,.15);color:rgba(0,255,178,.6); }
-.btn-game {
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      font-family:'Orbitron',sans-serif;
-      font-size:.72rem;
-      font-weight:700;
-      letter-spacing:.15em;
-      text-transform:uppercase;
-      padding:12px 28px;
-      border:none;
-      cursor:none;
+    }
+    .game-card::before { content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,255,178,.04) 0%,transparent 60%);pointer-events:none; }
+    .game-card:hover { border-color:rgba(0,255,178,.3);background:rgba(8,15,34,.9); }
+    .game-card.new-game::before { background:linear-gradient(135deg,rgba(0,255,178,.06) 0%,transparent 60%); }
+
+    .gc-icon { font-size:2rem;margin-bottom:14px;display:block;line-height:1; }
+    .gc-title { font-family:'Orbitron',sans-serif;font-size:.9rem;font-weight:700;letter-spacing:.1em;color:var(--white);margin-bottom:6px; }
+    .gc-desc { font-size:.85rem;color:rgba(232,244,255,.4);line-height:1.6;letter-spacing:.03em;margin-bottom:20px; }
+    .gc-meta { display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px; }
+    .gc-tag { font-size:.6rem;font-family:'Orbitron',sans-serif;letter-spacing:.1em;padding:3px 8px;border:1px solid rgba(0,255,178,.15);color:rgba(0,255,178,.6); }
+
+    .btn-game {
+      display:inline-flex;align-items:center;gap:8px;
+      font-family:'Orbitron',sans-serif;font-size:.72rem;font-weight:700;
+      letter-spacing:.15em;text-transform:uppercase;
+      padding:12px 28px;border:none;cursor:none;
       clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);
       transition:box-shadow .25s,transform .2s;
-      position:relative;
-      overflow:hidden;
-}
-.btn-game::before { content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent);transform:translateX(-100%);transition:transform .4s; }
-.btn-game:hover::before { transform:translateX(100%); }
-.btn-game.primary { background:var(--green);color:#050816; }
-.btn-game.primary:hover { box-shadow:0 0 28px rgba(0,255,178,.5);transform:translateY(-1px); }
-.btn-game:disabled { opacity:.3;cursor:not-allowed;transform:none; }
-.stats-row { display:grid;grid-template-columns:repeat(5,1fr);gap:12px; }
-.stat-card {
+      position:relative;overflow:hidden;
+    }
+    .btn-game::before { content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent);transform:translateX(-100%);transition:transform .4s; }
+    .btn-game:hover::before { transform:translateX(100%); }
+    .btn-game.primary { background:var(--green);color:#050816; }
+    .btn-game.primary:hover { box-shadow:0 0 28px rgba(0,255,178,.5);transform:translateY(-1px); }
+    .btn-game:disabled { opacity:.3;cursor:not-allowed;transform:none; }
+
+    /* ── STATS ROW ── */
+    .stats-row { display:grid;grid-template-columns:repeat(5,1fr);gap:12px; }
+
+    .stat-card {
       padding:18px 16px;
       border:1px solid rgba(255,255,255,.05);
       background:rgba(8,15,34,.6);
-      position:relative;
-      overflow:hidden;
+      position:relative;overflow:hidden;
       transition:border-color .2s;
-}
-.stat-card::after { content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--c,var(--green)); }
-.stat-card:hover { border-color:rgba(0,255,178,.15); }
-.stat-label { font-family:'Orbitron',sans-serif;font-size:.52rem;letter-spacing:.18em;color:rgba(232,244,255,.35);text-transform:uppercase;margin-bottom:6px; }
-.stat-value { font-family:'Orbitron',sans-serif;font-size:1.7rem;font-weight:900;color:var(--c,var(--green));line-height:1; }
-.stat-unit { font-size:.65rem;color:rgba(232,244,255,.3);margin-top:3px;letter-spacing:.06em; }
-.stat-delta { font-size:.65rem;margin-top:5px;letter-spacing:.06em; }
-.stat-delta.up { color:var(--green); }
-.stat-delta.down { color:var(--red); }
-.perf-badge {
-      display:inline-flex;
-      align-items:center;
-      gap:6px;
-      font-family:'Orbitron',sans-serif;
-      font-size:.62rem;
-      letter-spacing:.12em;
-      padding:6px 14px;
-      border-radius:1px;
-      text-transform:uppercase;
-}
-.perf-badge.excellent { background:rgba(0,255,178,.1);border:1px solid rgba(0,255,178,.3);color:var(--green); }
-.perf-badge.good      { background:rgba(0,209,255,.1);border:1px solid rgba(0,209,255,.3);color:var(--cyan); }
-.perf-badge.moderate  { background:rgba(255,184,0,.1);border:1px solid rgba(255,184,0,.3);color:var(--yellow); }
-.perf-badge.poor      { background:rgba(255,92,92,.1);border:1px solid rgba(255,92,92,.3);color:var(--red); }
-.perf-dot { width:6px;height:6px;border-radius:50%;background:currentColor;animation:pulse 1.5s infinite; }
-@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.6)} }
-.content-row { display:grid;grid-template-columns:1fr 380px;gap:20px; }
-.history-panel {
-      background:rgba(8,15,34,.7);
-      border:1px solid var(--border);
-      display:flex;
-      flex-direction:column;
-}
-.panel-head {
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      padding:16px 20px;
-      border-bottom:1px solid var(--border);
+    }
+    .stat-card::after { content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--c,var(--green)); }
+    .stat-card:hover { border-color:rgba(0,255,178,.15); }
+    .stat-label { font-family:'Orbitron',sans-serif;font-size:.52rem;letter-spacing:.18em;color:rgba(232,244,255,.35);text-transform:uppercase;margin-bottom:6px; }
+    .stat-value { font-family:'Orbitron',sans-serif;font-size:1.7rem;font-weight:900;color:var(--c,var(--green));line-height:1; }
+    .stat-unit { font-size:.65rem;color:rgba(232,244,255,.3);margin-top:3px;letter-spacing:.06em; }
+    .stat-delta { font-size:.65rem;margin-top:5px;letter-spacing:.06em; }
+    .stat-delta.up { color:var(--green); }
+    .stat-delta.down { color:var(--red); }
+
+    /* ── STATUS BADGE ── */
+    .perf-badge {
+      display:inline-flex;align-items:center;gap:6px;
+      font-family:'Orbitron',sans-serif;font-size:.62rem;letter-spacing:.12em;
+      padding:6px 14px;border-radius:1px;text-transform:uppercase;
+    }
+    .perf-badge.excellent { background:rgba(0,255,178,.1);border:1px solid rgba(0,255,178,.3);color:var(--green); }
+    .perf-badge.good      { background:rgba(0,209,255,.1);border:1px solid rgba(0,209,255,.3);color:var(--cyan); }
+    .perf-badge.moderate  { background:rgba(255,184,0,.1);border:1px solid rgba(255,184,0,.3);color:var(--yellow); }
+    .perf-badge.poor      { background:rgba(255,92,92,.1);border:1px solid rgba(255,92,92,.3);color:var(--red); }
+    .perf-dot { width:6px;height:6px;border-radius:50%;background:currentColor;animation:pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.6)} }
+
+    /* ── MAIN CONTENT ROW ── */
+    .content-row { display:grid;grid-template-columns:1fr 380px;gap:20px; }
+
+    /* ── SCORE HISTORY ── */
+    .history-panel {
+      background:rgba(8,15,34,.7);border:1px solid var(--border);
+      display:flex;flex-direction:column;
+    }
+    .panel-head {
+      display:flex;align-items:center;justify-content:space-between;
+      padding:16px 20px;border-bottom:1px solid var(--border);
       flex-shrink:0;
-}
-.panel-head-title { font-family:'Orbitron',sans-serif;font-size:.65rem;letter-spacing:.2em;color:var(--green);text-transform:uppercase; }
-.panel-head-sub { font-size:.72rem;color:rgba(232,244,255,.3);letter-spacing:.04em; }
-.chart-area { padding:20px;flex:1; }
-#scoreChart { width:100%;height:200px;display:block; }
-.history-table { width:100%;border-collapse:collapse; }
-.history-table th {
-      font-family:'Orbitron',sans-serif;
-      font-size:.52rem;
-      letter-spacing:.18em;
-      color:rgba(232,244,255,.3);
-      text-transform:uppercase;
-      text-align:left;
-      padding:8px 12px;
-      border-bottom:1px solid rgba(255,255,255,.04);
+    }
+    .panel-head-title { font-family:'Orbitron',sans-serif;font-size:.65rem;letter-spacing:.2em;color:var(--green);text-transform:uppercase; }
+    .panel-head-sub { font-size:.72rem;color:rgba(232,244,255,.3);letter-spacing:.04em; }
+
+    /* Chart area */
+    .chart-area { padding:20px;flex:1; }
+    #scoreChart { width:100%;height:200px;display:block; }
+
+    /* History table */
+    .history-table { width:100%;border-collapse:collapse; }
+    .history-table th {
+      font-family:'Orbitron',sans-serif;font-size:.52rem;letter-spacing:.18em;
+      color:rgba(232,244,255,.3);text-transform:uppercase;text-align:left;
+      padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.04);
       background:rgba(0,0,0,.2);
-}
-.history-table td { padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.03);font-size:.82rem;letter-spacing:.04em; }
-.history-table tr:hover td { background:rgba(0,255,178,.02); }
-.history-table tr:last-child td { border-bottom:none; }
-.score-cell { font-family:'Orbitron',sans-serif;font-weight:700; }
-.crown-icon { font-size:.85rem;margin-left:5px;filter:drop-shadow(0 0 6px rgba(255,184,0,.7)); }
-.empty-history { text-align:center;padding:40px 20px;color:rgba(232,244,255,.2);font-size:.82rem;letter-spacing:.08em; }
-.right-col { display:flex;flex-direction:column;gap:16px; }
-.metric-panel {
-      background:rgba(8,15,34,.7);
-      border:1px solid var(--border);
-}
-.mp-head { padding:14px 18px;border-bottom:1px solid var(--border); }
-.mp-title { font-family:'Orbitron',sans-serif;font-size:.6rem;letter-spacing:.2em;color:var(--cyan);text-transform:uppercase; }
-.mp-body { padding:16px 18px; }
-.poll-gauge { text-align:center;margin-bottom:16px; }
-.poll-num { font-family:'Orbitron',sans-serif;font-size:3rem;font-weight:900;line-height:1; }
-.poll-unit { font-size:.75rem;color:rgba(232,244,255,.35);letter-spacing:.1em; }
-.poll-bar-wrap { height:8px;background:rgba(255,255,255,.06);border-radius:0;overflow:hidden;margin-bottom:8px; }
-.poll-bar { height:100%;transition:width .8s ease,background .8s; }
-.poll-zones { display:flex;justify-content:space-between;font-size:.6rem;color:rgba(232,244,255,.25);font-family:'Orbitron',sans-serif;letter-spacing:.06em;margin-bottom:14px; }
-.poll-breakdown { display:flex;flex-direction:column;gap:6px; }
-.pb-row { display:flex;align-items:center;gap:8px; }
-.pb-label { font-size:.7rem;color:rgba(232,244,255,.4);letter-spacing:.06em;width:90px;flex-shrink:0; }
-.pb-bar-wrap { flex:1;height:3px;background:rgba(255,255,255,.06); }
-.pb-bar { height:100%;transition:width .6s; }
-.pb-val { font-family:'Orbitron',sans-serif;font-size:.62rem;color:rgba(232,244,255,.4);width:32px;text-align:right; }
-.disaster-panel {
-      background:rgba(8,15,34,.7);
-      border:1px solid rgba(255,92,92,.1);
-}
-.dp-head { padding:14px 18px;border-bottom:1px solid rgba(255,92,92,.08); }
-.dp-title { font-family:'Orbitron',sans-serif;font-size:.6rem;letter-spacing:.2em;color:var(--red);text-transform:uppercase; }
-.dp-body { padding:14px 18px; }
-.disaster-rate { display:flex;align-items:baseline;gap:6px;margin-bottom:12px; }
-.dr-num { font-family:'Orbitron',sans-serif;font-size:2.2rem;font-weight:900; }
-.dr-label { font-size:.72rem;color:rgba(232,244,255,.3);letter-spacing:.06em; }
-.disaster-list { display:flex;flex-direction:column;gap:6px; }
-.dis-item { display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(255,92,92,.04);border:1px solid rgba(255,92,92,.08); }
-.dis-icon { font-size:1rem;flex-shrink:0; }
-.dis-info { flex:1; }
-.dis-name { font-size:.72rem;font-family:'Orbitron',sans-serif;letter-spacing:.06em;color:rgba(232,244,255,.6); }
-.dis-time { font-size:.65rem;color:rgba(232,244,255,.25);margin-top:1px; }
-.dis-sev { font-size:.58rem;padding:2px 6px;font-family:'Orbitron',sans-serif;letter-spacing:.08em; }
-.dis-sev.high { background:rgba(255,92,92,.15);color:var(--red);border:1px solid rgba(255,92,92,.2); }
-.dis-sev.med  { background:rgba(255,184,0,.12);color:var(--yellow);border:1px solid rgba(255,184,0,.2); }
-.no-disasters { text-align:center;padding:20px;color:rgba(232,244,255,.2);font-size:.78rem;letter-spacing:.08em; }
-.perf-row { display:grid;grid-template-columns:repeat(3,1fr);gap:12px; }
-.perf-card {
-      padding:20px;
-      background:rgba(8,15,34,.7);
-      border:1px solid rgba(255,255,255,.05);
-      position:relative;
-      overflow:hidden;
-      transition:border-color .2s;
-}
-.perf-card:hover { border-color:rgba(0,255,178,.12); }
-.perf-card-label { font-family:'Orbitron',sans-serif;font-size:.55rem;letter-spacing:.2em;color:rgba(232,244,255,.35);text-transform:uppercase;margin-bottom:10px; }
-.perf-card-value { font-family:'Orbitron',sans-serif;font-size:1.3rem;font-weight:900;margin-bottom:8px; }
-.perf-card-bar { height:3px;background:rgba(255,255,255,.06);overflow:hidden;margin-bottom:8px; }
-.perf-card-fill { height:100%;transition:width .8s ease; }
-.modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9995;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px); }
-.modal-overlay.show { display:flex; }
-.modal-box { background:#070e24;border:1px solid rgba(0,255,178,.2);padding:32px;max-width:420px;width:92%;animation:mIn .25s ease; }
-@keyframes mIn { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} } .modal-title { font-family:'Orbitron',sans-serif;font-size:1rem;color:var(--green);margin-bottom:8px; }
-.modal-body { font-size:.88rem;color:rgba(232,244,255,.5);line-height:1.65;margin-bottom:24px; }
-.modal-btns { display:flex;gap:10px; }
-.modal-btn { flex:1;padding:11px;font-family:'Orbitron',sans-serif;font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;cursor:none;border:1px solid rgba(0,255,178,.2);background:transparent;color:var(--green);transition:all .2s; }
-.modal-btn:hover { background:rgba(0,255,178,.1); }
-.modal-btn.cancel { border-color:rgba(255,255,255,.1);color:rgba(232,244,255,.35); }
-.modal-btn.cancel:hover { background:rgba(255,255,255,.05); }
-@keyframes fadeUp { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:none} }
-.game-row    { animation:fadeUp .5s .1s both; }
-.stats-row   { animation:fadeUp .5s .2s both; }
-.content-row { animation:fadeUp .5s .3s both; }
-.perf-row    { animation:fadeUp .5s .4s both; }
-.neobot-bar {
-      padding:28px 32px 40px;display:flex;
-      justify-content:center;
+    }
+    .history-table td { padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.03);font-size:.82rem;letter-spacing:.04em; }
+    .history-table tr:hover td { background:rgba(0,255,178,.02); }
+    .history-table tr:last-child td { border-bottom:none; }
+    .score-cell { font-family:'Orbitron',sans-serif;font-weight:700; }
+    .crown-icon { font-size:.85rem;margin-left:5px;filter:drop-shadow(0 0 6px rgba(255,184,0,.7)); }
+    .empty-history { text-align:center;padding:40px 20px;color:rgba(232,244,255,.2);font-size:.82rem;letter-spacing:.08em; }
+
+    /* ── RIGHT COLUMN ── */
+    .right-col { display:flex;flex-direction:column;gap:16px; }
+
+    /* Pollution panel */
+    .metric-panel {
+      background:rgba(8,15,34,.7);border:1px solid var(--border);
+    }
+    .mp-head { padding:14px 18px;border-bottom:1px solid var(--border); }
+    .mp-title { font-family:'Orbitron',sans-serif;font-size:.6rem;letter-spacing:.2em;color:var(--cyan);text-transform:uppercase; }
+    .mp-body { padding:16px 18px; }
+
+    .poll-gauge { text-align:center;margin-bottom:16px; }
+    .poll-num { font-family:'Orbitron',sans-serif;font-size:3rem;font-weight:900;line-height:1; }
+    .poll-unit { font-size:.75rem;color:rgba(232,244,255,.35);letter-spacing:.1em; }
+
+    .poll-bar-wrap { height:8px;background:rgba(255,255,255,.06);border-radius:0;overflow:hidden;margin-bottom:8px; }
+    .poll-bar { height:100%;transition:width .8s ease,background .8s; }
+
+    .poll-zones { display:flex;justify-content:space-between;font-size:.6rem;color:rgba(232,244,255,.25);font-family:'Orbitron',sans-serif;letter-spacing:.06em;margin-bottom:14px; }
+
+    .poll-breakdown { display:flex;flex-direction:column;gap:6px; }
+    .pb-row { display:flex;align-items:center;gap:8px; }
+    .pb-label { font-size:.7rem;color:rgba(232,244,255,.4);letter-spacing:.06em;width:90px;flex-shrink:0; }
+    .pb-bar-wrap { flex:1;height:3px;background:rgba(255,255,255,.06); }
+    .pb-bar { height:100%;transition:width .6s; }
+    .pb-val { font-family:'Orbitron',sans-serif;font-size:.62rem;color:rgba(232,244,255,.4);width:32px;text-align:right; }
+
+    /* Disaster panel */
+    .disaster-panel {
+      background:rgba(8,15,34,.7);border:1px solid rgba(255,92,92,.1);
+    }
+    .dp-head { padding:14px 18px;border-bottom:1px solid rgba(255,92,92,.08); }
+    .dp-title { font-family:'Orbitron',sans-serif;font-size:.6rem;letter-spacing:.2em;color:var(--red);text-transform:uppercase; }
+    .dp-body { padding:14px 18px; }
+
+    .disaster-rate { display:flex;align-items:baseline;gap:6px;margin-bottom:12px; }
+    .dr-num { font-family:'Orbitron',sans-serif;font-size:2.2rem;font-weight:900; }
+    .dr-label { font-size:.72rem;color:rgba(232,244,255,.3);letter-spacing:.06em; }
+
+    .disaster-list { display:flex;flex-direction:column;gap:6px; }
+    .dis-item { display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(255,92,92,.04);border:1px solid rgba(255,92,92,.08); }
+    .dis-icon { font-size:1rem;flex-shrink:0; }
+    .dis-info { flex:1; }
+    .dis-name { font-size:.72rem;font-family:'Orbitron',sans-serif;letter-spacing:.06em;color:rgba(232,244,255,.6); }
+    .dis-time { font-size:.65rem;color:rgba(232,244,255,.25);margin-top:1px; }
+    .dis-sev { font-size:.58rem;padding:2px 6px;font-family:'Orbitron',sans-serif;letter-spacing:.08em; }
+    .dis-sev.high { background:rgba(255,92,92,.15);color:var(--red);border:1px solid rgba(255,92,92,.2); }
+    .dis-sev.med  { background:rgba(255,184,0,.12);color:var(--yellow);border:1px solid rgba(255,184,0,.2); }
+
+    .no-disasters { text-align:center;padding:20px;color:rgba(232,244,255,.2);font-size:.78rem;letter-spacing:.08em; }
+
+    /* ── PERFORMANCE ROW ── */
+    .perf-row { display:grid;grid-template-columns:repeat(3,1fr);gap:12px; }
+    .perf-card {
+      padding:20px;background:rgba(8,15,34,.7);border:1px solid rgba(255,255,255,.05);
+      position:relative;overflow:hidden;transition:border-color .2s;
+    }
+    .perf-card:hover { border-color:rgba(0,255,178,.12); }
+    .perf-card-label { font-family:'Orbitron',sans-serif;font-size:.55rem;letter-spacing:.2em;color:rgba(232,244,255,.35);text-transform:uppercase;margin-bottom:10px; }
+    .perf-card-value { font-family:'Orbitron',sans-serif;font-size:1.3rem;font-weight:900;margin-bottom:8px; }
+    .perf-card-bar { height:3px;background:rgba(255,255,255,.06);overflow:hidden;margin-bottom:8px; }
+    .perf-card-fill { height:100%;transition:width .8s ease; }
+    .perf-card-status { }
+
+    /* ── MODAL ── */
+    .modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:500;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px); }
+    .modal-overlay.show { display:flex; }
+    .modal-box { background:#070e24;border:1px solid rgba(0,255,178,.2);padding:32px;max-width:420px;width:92%;animation:mIn .25s ease; }
+    @keyframes mIn { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
+    .modal-title { font-family:'Orbitron',sans-serif;font-size:1rem;color:var(--green);margin-bottom:8px; }
+    .modal-body { font-size:.88rem;color:rgba(232,244,255,.5);line-height:1.65;margin-bottom:24px; }
+    .modal-btns { display:flex;gap:10px; }
+    .modal-btn { flex:1;padding:11px;font-family:'Orbitron',sans-serif;font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;cursor:none;border:1px solid rgba(0,255,178,.2);background:transparent;color:var(--green);transition:all .2s; }
+    .modal-btn:hover { background:rgba(0,255,178,.1); }
+    .modal-btn.cancel { border-color:rgba(255,255,255,.1);color:rgba(232,244,255,.35); }
+    .modal-btn.cancel:hover { background:rgba(255,255,255,.05); }
+
+    /* Animations */
+    @keyframes fadeUp { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:none} }
+    .score-breakdown-banner { animation:fadeUp .5s .05s both; }
+    .game-row    { animation:fadeUp .5s .1s both; }
+    .stats-row   { animation:fadeUp .5s .2s both; }
+    .content-row { animation:fadeUp .5s .3s both; }
+    .perf-row    { animation:fadeUp .5s .4s both; }
+
+    /* ── NEOBOT BUTTON ── */
+    .neobot-bar {
+      padding:28px 32px 40px;display:flex;justify-content:center;
       animation:fadeUp .5s .5s both;
-}
-.btn-neobot {
-      display:inline-flex;
-      align-items:center;
-      gap:14px;
+    }
+    .btn-neobot {
+      display:inline-flex;align-items:center;gap:14px;
       font-family:'Orbitron',sans-serif;font-size:.78rem;font-weight:700;
-      letter-spacing:.18em;
-      text-transform:uppercase;
-      padding:16px 48px;
-      border:none;cursor:none;
+      letter-spacing:.18em;text-transform:uppercase;
+      padding:16px 48px;border:none;cursor:none;
       background:linear-gradient(135deg,#7B2FBE,#4a1a8a);
-      color:#fff;
-      position:relative;
-      overflow:hidden;
+      color:#fff;position:relative;overflow:hidden;
       clip-path:polygon(12px 0%,100% 0%,calc(100% - 12px) 100%,0% 100%);
       transition:box-shadow .3s,transform .2s;
-}
-.btn-neobot::before {
-      content:'';
-      position:absolute;
-      inset:0;
+    }
+    .btn-neobot::before {
+      content:'';position:absolute;inset:0;
       background:linear-gradient(90deg,transparent,rgba(255,255,255,.15),transparent);
-      transform:translateX(-100%);
-      transition:transform .5s;
-}
-.btn-neobot:hover::before { transform:translateX(100%); }
-.btn-neobot:hover { box-shadow:0 0 40px rgba(123,47,190,.7),0 0 80px rgba(123,47,190,.3);transform:translateY(-2px); }
-.btn-neobot-icon { font-size:1.3rem;animation:botBob 2s ease-in-out infinite; }
-@keyframes botBob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
-.btn-neobot-pulse {
-      position:absolute;
-      inset:0;
+      transform:translateX(-100%);transition:transform .5s;
+    }
+    .btn-neobot:hover::before { transform:translateX(100%); }
+    .btn-neobot:hover { box-shadow:0 0 40px rgba(123,47,190,.7),0 0 80px rgba(123,47,190,.3);transform:translateY(-2px); }
+    .btn-neobot-icon { font-size:1.3rem;animation:botBob 2s ease-in-out infinite; }
+    @keyframes botBob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
+    .btn-neobot-pulse {
+      position:absolute;inset:0;
       background:linear-gradient(135deg,rgba(123,47,190,.4),rgba(0,209,255,.15));
-      animation:neoPulse 3s ease-in-out infinite;
-      opacity:0;
-}
-@keyframes neoPulse { 0%,100%{opacity:0} 50%{opacity:1} }
-.neobot-overlay { position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9990;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(6px); }
-.neobot-overlay.show { display:flex; }
-.neobot-modal {
-      width:100%;
-      max-width:680px;
+      animation:neoPulse 3s ease-in-out infinite;opacity:0;
+    }
+    @keyframes neoPulse { 0%,100%{opacity:0} 50%{opacity:1} }
+
+    /* ── NEOBOT MODAL ── */
+    .neobot-overlay { position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:600;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(6px); }
+    .neobot-overlay.show { display:flex; }
+    .neobot-modal {
+      width:100%;max-width:680px;
       background:#070e24;
       border:1px solid rgba(123,47,190,.4);
       border-bottom:none;
       animation:slideUp .3s ease;
-      display:flex;
-      flex-direction:column;
+      display:flex;flex-direction:column;
       max-height:72vh;
-}
-@keyframes slideUp { from{transform:translateY(100%);opacity:0} to{transform:none;opacity:1} }
-.nb-head {
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      padding:16px 20px;
-      border-bottom:1px solid rgba(123,47,190,.25);
+    }
+    @keyframes slideUp { from{transform:translateY(100%);opacity:0} to{transform:none;opacity:1} }
+    .nb-head {
+      display:flex;align-items:center;justify-content:space-between;
+      padding:16px 20px;border-bottom:1px solid rgba(123,47,190,.25);
       flex-shrink:0;
-}
-.nb-head-left { display:flex;align-items:center;gap:12px; }
-.nb-avatar {
-      width:36px;
-      height:36px;
-      border-radius:50%;
+    }
+    .nb-head-left { display:flex;align-items:center;gap:12px; }
+    .nb-avatar {
+      width:36px;height:36px;border-radius:50%;
       background:linear-gradient(135deg,#7B2FBE,#00D1FF);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:1rem;
-      flex-shrink:0;
+      display:flex;align-items:center;justify-content:center;
+      font-size:1rem;flex-shrink:0;
       box-shadow:0 0 14px rgba(123,47,190,.5);
-}
-.nb-title { font-family:'Orbitron',sans-serif;font-size:.72rem;letter-spacing:.15em;color:#c084fc; }
-.nb-sub { font-size:.68rem;color:rgba(232,244,255,.3);letter-spacing:.04em;margin-top:1px; }
-.nb-close {
-      font-size:1.2rem;
-      background:transparent;
-      border:none;
-      color:rgba(232,244,255,.3);
-      cursor:none;
-      padding:4px 8px;
-      transition:color .2s;
-}
-.nb-close:hover { color:var(--white); }
-.nb-messages {
-      flex:1;
-      overflow-y:auto;
-      padding:16px 20px;
-      display:flex;
-      flex-direction:column;
-      gap:12px;
-      scrollbar-width:thin;
-      scrollbar-color:rgba(123,47,190,.3) transparent;
-}
-.nb-msg { display:flex;gap:10px;animation:fadeUp .25s ease; }
-.nb-msg.user { flex-direction:row-reverse; }
-.nb-bubble {
-      max-width:75%;
-      padding:10px 14px;
-      font-size:.82rem;
-      line-height:1.6;
-      letter-spacing:.03em;
+    }
+    .nb-title { font-family:'Orbitron',sans-serif;font-size:.72rem;letter-spacing:.15em;color:#c084fc; }
+    .nb-sub { font-size:.68rem;color:rgba(232,244,255,.3);letter-spacing:.04em;margin-top:1px; }
+    .nb-close {
+      font-size:1.2rem;background:transparent;border:none;color:rgba(232,244,255,.3);
+      cursor:none;padding:4px 8px;transition:color .2s;
+    }
+    .nb-close:hover { color:var(--white); }
+    .nb-messages {
+      flex:1;overflow-y:auto;padding:16px 20px;
+      display:flex;flex-direction:column;gap:12px;
+      scrollbar-width:thin;scrollbar-color:rgba(123,47,190,.3) transparent;
+    }
+    .nb-msg { display:flex;gap:10px;animation:fadeUp .25s ease; }
+    .nb-msg.user { flex-direction:row-reverse; }
+    .nb-bubble {
+      max-width:75%;padding:10px 14px;font-size:.82rem;line-height:1.6;letter-spacing:.03em;
       border-radius:2px;
-}
-.nb-msg.bot .nb-bubble {
-      background:rgba(123,47,190,.15);
-      border:1px solid rgba(123,47,190,.25);
-      color:var(--white);
+    }
+    .nb-msg.bot .nb-bubble {
+      background:rgba(123,47,190,.15);border:1px solid rgba(123,47,190,.25);color:var(--white);
       border-radius:0 8px 8px 8px;
-}
-.nb-msg.user .nb-bubble {
-      background:rgba(0,209,255,.1);
-      border:1px solid rgba(0,209,255,.25);
-      color:var(--white);
-      border-radius:8px 0 8px 8px;
-      text-align:right;
-}
-.nb-msg-avatar {
-      width:28px;
-      height:28px;
-      border-radius:50%;
-      flex-shrink:0;
-      margin-top:2px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:.75rem;
-}
-.nb-msg.bot .nb-msg-avatar { background:linear-gradient(135deg,#7B2FBE,#00D1FF); }
-.nb-msg.user .nb-msg-avatar { background:rgba(0,209,255,.2);border:1px solid rgba(0,209,255,.3); }
-.nb-typing { display:flex;gap:4px;align-items:center;padding:4px 0; }
-.nb-typing span { width:6px;height:6px;border-radius:50%;background:#a855f7;animation:typeDot 1.2s infinite; }
-.nb-typing span:nth-child(2){animation-delay:.2s}
-.nb-typing span:nth-child(3){animation-delay:.4s}
-@keyframes typeDot{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}
-.nb-quick { display:flex;flex-wrap:wrap;gap:6px;padding:0 20px 12px; }
-.nb-chip {
-      font-family:'Orbitron',sans-serif;
-      font-size:.55rem;
-      letter-spacing:.1em;
-      padding:5px 10px;
-      border:1px solid rgba(123,47,190,.35);
-      background:rgba(123,47,190,.08);
-      color:#c084fc;
-      cursor:none;
+    }
+    .nb-msg.user .nb-bubble {
+      background:rgba(0,209,255,.1);border:1px solid rgba(0,209,255,.25);color:var(--white);
+      border-radius:8px 0 8px 8px;text-align:right;
+    }
+    .nb-msg-avatar {
+      width:28px;height:28px;border-radius:50%;flex-shrink:0;margin-top:2px;
+      display:flex;align-items:center;justify-content:center;font-size:.75rem;
+    }
+    .nb-msg.bot .nb-msg-avatar { background:linear-gradient(135deg,#7B2FBE,#00D1FF); }
+    .nb-msg.user .nb-msg-avatar { background:rgba(0,209,255,.2);border:1px solid rgba(0,209,255,.3); }
+    .nb-typing { display:flex;gap:4px;align-items:center;padding:4px 0; }
+    .nb-typing span { width:6px;height:6px;border-radius:50%;background:#a855f7;animation:typeDot 1.2s infinite; }
+    .nb-typing span:nth-child(2){animation-delay:.2s}
+    .nb-typing span:nth-child(3){animation-delay:.4s}
+    @keyframes typeDot{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}
+    .nb-quick { display:flex;flex-wrap:wrap;gap:6px;padding:0 20px 12px; }
+    .nb-chip {
+      font-family:'Orbitron',sans-serif;font-size:.55rem;letter-spacing:.1em;
+      padding:5px 10px;border:1px solid rgba(123,47,190,.35);
+      background:rgba(123,47,190,.08);color:#c084fc;cursor:none;
       transition:all .2s;
-}
-.nb-chip:hover { background:rgba(123,47,190,.2);border-color:rgba(123,47,190,.6); }
-.nb-input-row {
-      display:flex;
-      gap:8px;
-      padding:12px 20px 16px;
-      border-top:1px solid rgba(123,47,190,.2);
-      flex-shrink:0;
-}
-.nb-input {
-      flex:1; 
-      background:rgba(123,47,190,.08); 
-      border:1px solid rgba(123,47,190,.3);
-      color:var(--white);
-      font-family:'Rajdhani',sans-serif;
-      font-size:.88rem;
-      padding:10px 14px;
-      letter-spacing:.04em;
-      outline:none;
+    }
+    .nb-chip:hover { background:rgba(123,47,190,.2);border-color:rgba(123,47,190,.6); }
+    .nb-input-row {
+      display:flex;gap:8px;padding:12px 20px 16px;
+      border-top:1px solid rgba(123,47,190,.2);flex-shrink:0;
+    }
+    .nb-input {
+      flex:1;background:rgba(123,47,190,.08);border:1px solid rgba(123,47,190,.3);
+      color:var(--white);font-family:'Rajdhani',sans-serif;font-size:.88rem;
+      padding:10px 14px;letter-spacing:.04em;outline:none;
       transition:border-color .2s;
-}
-.nb-input::placeholder { color:rgba(232,244,255,.25); }
-.nb-input:focus { border-color:rgba(123,47,190,.7); }
-.nb-send {
-      padding:10px 20px;
-      background:linear-gradient(135deg,#7B2FBE,#4a1a8a);
-      border:none;
-      color:#fff;
-      font-family:'Orbitron',sans-serif;
-      font-size:.6rem;
-      letter-spacing:.12em;
-      cursor:none;
-      transition:box-shadow .2s;
-}
-.nb-send:hover { box-shadow:0 0 16px rgba(123,47,190,.6); }
-@media(max-width:900px){
-.content-row { grid-template-columns:1fr; }
-.stats-row   { grid-template-columns:repeat(3,1fr); }
-.perf-row    { grid-template-columns:1fr 1fr; }
-.game-row    { grid-template-columns:1fr; }
-.dashboard   { padding:16px; }
-.neobot-modal { max-height:85vh; }
-}
-</style>
+    }
+    .nb-input::placeholder { color:rgba(232,244,255,.25); }
+    .nb-input:focus { border-color:rgba(123,47,190,.7); }
+    .nb-send {
+      padding:10px 20px;background:linear-gradient(135deg,#7B2FBE,#4a1a8a);
+      border:none;color:#fff;font-family:'Orbitron',sans-serif;font-size:.6rem;
+      letter-spacing:.12em;cursor:none;transition:box-shadow .2s;
+    }
+    .nb-send:hover { box-shadow:0 0 16px rgba(123,47,190,.6); }
+
+    @media(max-width:900px){
+      .content-row { grid-template-columns:1fr; }
+      .stats-row   { grid-template-columns:repeat(3,1fr); }
+      .perf-row    { grid-template-columns:1fr 1fr; }
+      .game-row    { grid-template-columns:1fr; }
+      .dashboard   { padding:16px; }
+      .neobot-modal { max-height:85vh; }
+      .sbb-items   { gap:6px; }
+    }
+  </style>
 </head>
 <body>
 <div id="cursor"></div>
 <div id="cursor-trail"></div>
 <canvas id="bg-canvas"></canvas>
 
+<!-- New Game Confirm Modal -->
 <div class="modal-overlay" id="new-modal">
-<div class="modal-box">
-<div class="modal-title">🆕 Start New Game?</div>
-<div class="modal-body">This will clear your current city and reset all scores. Your history will be saved. Are you sure you want to start fresh?</div>
-<div class="modal-btns">
-<button class="modal-btn cancel" onclick="closeModal('new-modal')">Cancel</button>
-<button class="modal-btn" onclick="startNewGame()">Start New Game</button>
-</div>
-</div>
+  <div class="modal-box">
+    <div class="modal-title">🆕 Start New Game?</div>
+    <div class="modal-body">This will clear your current city and reset all scores. Your history will be saved. Are you sure you want to start fresh?</div>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeModal('new-modal')">Cancel</button>
+      <button class="modal-btn" onclick="startNewGame()">Start New Game</button>
+    </div>
+  </div>
 </div>
 
+<!-- NeoBot Modal -->
 <div class="neobot-overlay" id="neobot-overlay" onclick="handleOverlayClick(event)">
-<div class="neobot-modal" id="neobot-modal">
-<div class="nb-head">
-<div class="nb-head-left">
-<div class="nb-avatar">🤖</div>
-<div>
-<div class="nb-title">NEOBOT — City AI Advisor</div>
-<div class="nb-sub">Powered by NeoCity Intelligence</div>
-</div>
-</div>
-<button class="nb-close" onclick="closeNeobot()">✕</button>
-</div>
-<div class="nb-messages" id="nb-messages"></div>
-<div class="nb-quick" id="nb-quick">
-<button class="nb-chip" onclick="sendQuick('How can I reduce pollution?')">Reduce Pollution</button>
-<button class="nb-chip" onclick="sendQuick('How do I increase my city score?')">Boost Score</button>
-<button class="nb-chip" onclick="sendQuick('What buildings should I place next?')">Building Tips</button>
-<button class="nb-chip" onclick="sendQuick('How do I prevent disasters?')">Prevent Disasters</button>
-<button class="nb-chip" onclick="sendQuick('Analyse my current city performance')">Analyse City</button>
-</div>
-<div class="nb-input-row">
-<input class="nb-input" id="nb-input" placeholder="Ask NeoBot anything about your city..." onkeydown="if(event.key==='Enter')sendMessage()"/>
-<button class="nb-send" onclick="sendMessage()">SEND ▶</button>
-</div>
-</div>
+  <div class="neobot-modal" id="neobot-modal">
+    <div class="nb-head">
+      <div class="nb-head-left">
+        <div class="nb-avatar">🤖</div>
+        <div>
+          <div class="nb-title">NEOBOT — City AI Advisor</div>
+          <div class="nb-sub">Powered by NeoCity Intelligence</div>
+        </div>
+      </div>
+      <button class="nb-close" onclick="closeNeobot()">✕</button>
+    </div>
+    <div class="nb-messages" id="nb-messages"></div>
+    <div class="nb-quick" id="nb-quick">
+      <button class="nb-chip" onclick="sendQuick('How can I reduce pollution?')">Reduce Pollution</button>
+      <button class="nb-chip" onclick="sendQuick('How do I increase my city score?')">Boost Score</button>
+      <button class="nb-chip" onclick="sendQuick('What buildings should I place next?')">Building Tips</button>
+      <button class="nb-chip" onclick="sendQuick('How do I prevent disasters?')">Prevent Disasters</button>
+      <button class="nb-chip" onclick="sendQuick('Analyse my current city performance')">Analyse City</button>
+    </div>
+    <div class="nb-input-row">
+      <input class="nb-input" id="nb-input" placeholder="Ask NeoBot anything about your city..." onkeydown="if(event.key==='Enter')sendMessage()"/>
+      <button class="nb-send" onclick="sendMessage()">SEND ▶</button>
+    </div>
+  </div>
 </div>
 
 <div class="content">
-<div class="topbar">
-<div class="tb-logo">NEO<span>CITY</span> AI</div>
-<nav class="tb-nav">
-<a href="index.html">Home</a>
-<a href="city.html">City Builder</a>
-<a href="dashboard.html" class="active">Dashboard</a>
-</nav>
-<div class="tb-right">
-<div class="tb-time" id="tb-time">--:--:--</div>
-</div>
-</div>
 
-<div class="dashboard">
-<div>
-<div class="sec-label">// Game Options</div>
-<div class="game-row">
-<div class="game-card new-game">
-<span class="gc-icon">🌆</span>
-<div class="gc-title">New Game</div>
-<div class="gc-desc">Start a fresh city from scratch. Design your urban layout, place buildings, and work towards a sustainable future with a clean slate.</div>
-<div class="gc-meta">
-<span class="gc-tag">Clean Slate</span>
-<span class="gc-tag">New Strategy</span>
-<span class="gc-tag">Score Reset</span>
-</div>
-<button class="btn-game primary" onclick="openConfirmModal()">
-▶ Start New Game
-</button>
-</div>
-</div>
-</div>
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="tb-logo">NEO<span>CITY</span> AI</div>
+    <nav class="tb-nav">
+      <a href="index.html">Home</a>
+      <a href="city.html">City Builder</a>
+      <a href="dashboard.html" class="active">Dashboard</a>
+    </nav>
+    <div class="tb-right">
+      <div class="tb-time" id="tb-time">--:--:--</div>
+    </div>
+  </div>
 
-<div>
-<div class="sec-label">// Current Session Stats</div>
-<div class="stats-row">
-<div class="stat-card" style="--c:var(--green)">
-<div class="stat-label">City Score</div>
-<div class="stat-value" id="s-score">—</div>
-<div class="stat-unit">points</div>
-<div class="stat-delta" id="s-score-delta"></div>
-</div>
-<div class="stat-card" style="--c:var(--red)">
-<div class="stat-label">Pollution</div>
-<div class="stat-value" id="s-poll">—</div>
-<div class="stat-unit">% index</div>
-<div class="stat-delta" id="s-poll-delta"></div>
-</div>
-<div class="stat-card" style="--c:var(--yellow)">
-<div class="stat-label">Happiness</div>
-<div class="stat-value" id="s-hap">—</div>
-<div class="stat-unit">% index</div>
-</div>
-<div class="stat-card" style="--c:var(--cyan)">
-<div class="stat-label">Buildings</div>
-<div class="stat-value" id="s-build">—</div>
-<div class="stat-unit">placed</div>
-</div>
-<div class="stat-card" style="--c:var(--purple)">
-<div class="stat-label">Disasters</div>
-<div class="stat-value" id="s-dis">0</div>
-<div class="stat-unit">total events</div>
-</div>
-</div>
-</div>
+  <!-- DASHBOARD -->
+  <div class="dashboard">
 
-<div class="content-row">
-<div class="history-panel">
-<div class="panel-head">
-<div>
-<div class="panel-head-title">Score History</div>
-<div class="panel-head-sub">Per-session performance over time</div>
-</div>
-<div id="overall-badge"></div>
-</div>
-<div class="chart-area">
-<canvas id="scoreChart"></canvas>
-</div>
-<div style="padding:0 20px 16px;">
-<table class="history-table" id="history-table">
-<thead>
-<tr>
-<th>#</th>
-<th>Score</th>
-<th>Pollution</th>
-<th>Buildings</th>
-<th>Disasters</th>
-<th>Performance</th>
-<th>Date</th>
-</tr>
-</thead>
-<tbody id="history-tbody">
-<tr><td colspan="7" class="empty-history">No game history yet. Play a game to see your scores here.</td></tr>
-</tbody>
-</table>
-</div>
-</div>
+    <!-- ── SCORE BREAKDOWN BANNER ── -->
+    <div class="score-breakdown-banner" id="score-breakdown-banner">
+      <div class="sbb-title">// Score Breakdown</div>
+      <div class="sbb-items" id="sbb-items">
+        <div class="sbb-item"><span class="sbb-emoji">☀️</span><span class="sbb-label">Solar</span><span class="sbb-pts pos">+5 ea</span></div>
+        <div class="sbb-item"><span class="sbb-emoji">🌳</span><span class="sbb-label">Forest</span><span class="sbb-pts pos">+10 ea</span></div>
+        <div class="sbb-item"><span class="sbb-emoji">🚌</span><span class="sbb-label">E-Bus</span><span class="sbb-pts pos">+3 ea</span></div>
+        <div class="sbb-item"><span class="sbb-emoji">♻️</span><span class="sbb-label">Recycle</span><span class="sbb-pts pos">+4 ea</span></div>
+        <div class="sbb-item"><span class="sbb-emoji">🏠</span><span class="sbb-label">Home</span><span class="sbb-pts pos">+2 ea</span></div>
+        <div class="sbb-item"><span class="sbb-emoji">🏭</span><span class="sbb-label">Factory</span><span class="sbb-pts neg">−10 ea</span></div>
+      </div>
+      <div class="sbb-total" id="sbb-total">TOTAL: <span id="sbb-total-val" style="color:var(--green)">0 pts</span></div>
+    </div>
 
-<div class="right-col">
-<div class="metric-panel">
-<div class="mp-head">
-<div class="mp-title">Pollution Rate Tracker</div>
-</div>
-<div class="mp-body">
-<div class="poll-gauge">
-<div class="poll-num" id="poll-gauge-num" style="color:var(--green)">—</div>
-<div class="poll-unit">POLLUTION INDEX</div>
-</div>
-<div class="poll-bar-wrap">
-<div class="poll-bar" id="poll-bar" style="width:0%;background:var(--green)"></div>
-</div>
-<div class="poll-zones">
-<span>CLEAN</span>
-<span>MODERATE</span>
-<span>HIGH</span>
-<span>CRITICAL</span>
-</div>
-<div class="poll-breakdown">
-<div class="pb-row">
-<span class="pb-label">Industrial</span>
-<div class="pb-bar-wrap"><div class="pb-bar" id="pb-industrial" style="width:0%;background:var(--red)"></div></div>
-<span class="pb-val" id="pb-ind-val">—</span>
-</div>
-<div class="pb-row">
-<span class="pb-label">Residential</span>
-<div class="pb-bar-wrap"><div class="pb-bar" id="pb-residential" style="width:0%;background:var(--yellow)"></div></div>
-<span class="pb-val" id="pb-res-val">—</span>
-</div>
-<div class="pb-row">
-<span class="pb-label">Transport</span>
-<div class="pb-bar-wrap"><div class="pb-bar" id="pb-transport" style="width:0%;background:var(--cyan)"></div></div>
-<span class="pb-val" id="pb-tr-val">—</span>
-</div>
-<div class="pb-row">
-<span class="pb-label">Green Cover</span>
-<div class="pb-bar-wrap"><div class="pb-bar" id="pb-green" style="width:0%;background:var(--green)"></div></div>
-<span class="pb-val" id="pb-gr-val">—</span>
-</div>
-</div>
-</div>
-</div>
+    <!-- ── GAME OPTIONS ── -->
+    <div>
+      <div class="sec-label">// Game Options</div>
+      <div class="game-row">
+        <div class="game-card new-game">
+          <span class="gc-icon">🌆</span>
+          <div class="gc-title">New Game</div>
+          <div class="gc-desc">Start a fresh city from scratch. Design your urban layout, place buildings, and work towards a sustainable future with a clean slate.</div>
+          <div class="gc-meta">
+            <span class="gc-tag">Clean Slate</span>
+            <span class="gc-tag">New Strategy</span>
+            <span class="gc-tag">Score Saved to History</span>
+          </div>
+          <button class="btn-game primary" onclick="document.getElementById('new-modal').classList.add('show')">
+            ▶ Start New Game
+          </button>
+        </div>
+      </div>
+    </div>
 
-<div class="disaster-panel">
-<div class="dp-head">
-<div class="dp-title">⚠ Disaster Events</div>
-</div>
-<div class="dp-body">
-<div class="disaster-rate">
-<div class="dr-num" id="dr-num" style="color:var(--green)">0</div>
-<div class="dr-label">total disasters recorded</div>
-</div>
-<div class="disaster-list" id="disaster-list">
-<div class="no-disasters">No disasters recorded yet.</div>
-</div>
-</div>
-</div>
-</div>
-</div>
+    <!-- ── LIVE STATS ── -->
+    <div>
+      <div class="sec-label">// Current Session Stats</div>
+      <div class="stats-row">
+        <div class="stat-card" style="--c:var(--green)">
+          <div class="stat-label">City Score</div>
+          <div class="stat-value" id="s-score">—</div>
+          <div class="stat-unit">points</div>
+          <div class="stat-delta" id="s-score-delta"></div>
+        </div>
+        <div class="stat-card" style="--c:var(--red)">
+          <div class="stat-label">Pollution</div>
+          <div class="stat-value" id="s-poll">—</div>
+          <div class="stat-unit">% index</div>
+        </div>
+        <div class="stat-card" style="--c:var(--yellow)">
+          <div class="stat-label">Happiness</div>
+          <div class="stat-value" id="s-hap">—</div>
+          <div class="stat-unit">% index</div>
+        </div>
+        <div class="stat-card" style="--c:var(--cyan)">
+          <div class="stat-label">Buildings</div>
+          <div class="stat-value" id="s-build">—</div>
+          <div class="stat-unit">placed</div>
+        </div>
+        <div class="stat-card" style="--c:var(--purple)">
+          <div class="stat-label">Disasters</div>
+          <div class="stat-value" id="s-dis">0</div>
+          <div class="stat-unit">total events</div>
+        </div>
+      </div>
+    </div>
 
-<div>
-<div class="sec-label">// Performance Analysis</div>
-<div class="perf-row">
-<div class="perf-card">
-<div class="perf-card-label">Overall Performance</div>
-<div class="perf-card-value" id="perf-overall" style="color:var(--green)">—</div>
-<div class="perf-card-bar"><div class="perf-card-fill" id="perf-overall-bar" style="width:0%;background:var(--green)"></div></div>
-<div id="perf-overall-badge"></div>
-</div>
-<div class="perf-card">
-<div class="perf-card-label">Pollution Performance</div>
-<div class="perf-card-value" id="perf-poll" style="color:var(--green)">—</div>
-<div class="perf-card-bar"><div class="perf-card-fill" id="perf-poll-bar" style="width:0%;background:var(--green)"></div></div>
-<div id="perf-poll-badge"></div>
-</div>
-<div class="perf-card">
-<div class="perf-card-label">Sustainability Rating</div>
-<div class="perf-card-value" id="perf-sus" style="color:var(--green)">—</div>
-<div class="perf-card-bar"><div class="perf-card-fill" id="perf-sus-bar" style="width:0%;background:var(--green)"></div></div>
-<div id="perf-sus-badge"></div>
-</div>
-</div>
-</div>
+    <!-- ── MAIN CONTENT ROW ── -->
+    <div class="content-row">
 
-<div class="neobot-bar">
-<button class="btn-neobot" onclick="openNeobot()">
-<div class="btn-neobot-pulse"></div>
-<span class="btn-neobot-icon">🤖</span>
-Get Help from NeoBot
-</button>
-</div>
-</div></div><script>
-// --- Custom Cursor Logic ---
+      <!-- Score History -->
+      <div class="history-panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-head-title">Score History</div>
+            <div class="panel-head-sub">Per-session performance over time</div>
+          </div>
+          <div id="overall-badge"></div>
+        </div>
+        <div class="chart-area">
+          <canvas id="scoreChart"></canvas>
+        </div>
+        <div style="padding:0 20px 16px;">
+          <table class="history-table" id="history-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Score</th>
+                <th>Pollution</th>
+                <th>Buildings</th>
+                <th>Disasters</th>
+                <th>Performance</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody id="history-tbody">
+              <tr><td colspan="7" class="empty-history">No game history yet. Play a game to see your scores here.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Right Column -->
+      <div class="right-col">
+
+        <!-- Pollution Tracker -->
+        <div class="metric-panel">
+          <div class="mp-head">
+            <div class="mp-title">Pollution Rate Tracker</div>
+          </div>
+          <div class="mp-body">
+            <div class="poll-gauge">
+              <div class="poll-num" id="poll-gauge-num" style="color:var(--green)">—</div>
+              <div class="poll-unit">POLLUTION INDEX</div>
+            </div>
+            <div class="poll-bar-wrap">
+              <div class="poll-bar" id="poll-bar" style="width:0%;background:var(--green)"></div>
+            </div>
+            <div class="poll-zones">
+              <span>CLEAN</span>
+              <span>MODERATE</span>
+              <span>HIGH</span>
+              <span>CRITICAL</span>
+            </div>
+            <div class="poll-breakdown">
+              <div class="pb-row">
+                <span class="pb-label">Industrial</span>
+                <div class="pb-bar-wrap"><div class="pb-bar" id="pb-industrial" style="width:0%;background:var(--red)"></div></div>
+                <span class="pb-val" id="pb-ind-val">—</span>
+              </div>
+              <div class="pb-row">
+                <span class="pb-label">Residential</span>
+                <div class="pb-bar-wrap"><div class="pb-bar" id="pb-residential" style="width:0%;background:var(--yellow)"></div></div>
+                <span class="pb-val" id="pb-res-val">—</span>
+              </div>
+              <div class="pb-row">
+                <span class="pb-label">Transport</span>
+                <div class="pb-bar-wrap"><div class="pb-bar" id="pb-transport" style="width:0%;background:var(--cyan)"></div></div>
+                <span class="pb-val" id="pb-tr-val">—</span>
+              </div>
+              <div class="pb-row">
+                <span class="pb-label">Green Cover</span>
+                <div class="pb-bar-wrap"><div class="pb-bar" id="pb-green" style="width:0%;background:var(--green)"></div></div>
+                <span class="pb-val" id="pb-gr-val">—</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Disaster Rate -->
+        <div class="disaster-panel">
+          <div class="dp-head">
+            <div class="dp-title">⚠ Disaster Events</div>
+          </div>
+          <div class="dp-body">
+            <div class="disaster-rate">
+              <div class="dr-num" id="dr-num" style="color:var(--green)">0</div>
+              <div class="dr-label">total disasters recorded</div>
+            </div>
+            <div class="disaster-list" id="disaster-list">
+              <div class="no-disasters">No disasters recorded yet.</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── PERFORMANCE ROW ── -->
+    <div>
+      <div class="sec-label">// Performance Analysis</div>
+      <div class="perf-row">
+        <div class="perf-card">
+          <div class="perf-card-label">Overall Performance</div>
+          <div class="perf-card-value" id="perf-overall" style="color:var(--green)">—</div>
+          <div class="perf-card-bar"><div class="perf-card-fill" id="perf-overall-bar" style="width:0%;background:var(--green)"></div></div>
+          <div id="perf-overall-badge"></div>
+        </div>
+        <div class="perf-card">
+          <div class="perf-card-label">Pollution Performance</div>
+          <div class="perf-card-value" id="perf-poll" style="color:var(--green)">—</div>
+          <div class="perf-card-bar"><div class="perf-card-fill" id="perf-poll-bar" style="width:0%;background:var(--green)"></div></div>
+          <div id="perf-poll-badge"></div>
+        </div>
+        <div class="perf-card">
+          <div class="perf-card-label">Sustainability Rating</div>
+          <div class="perf-card-value" id="perf-sus" style="color:var(--green)">—</div>
+          <div class="perf-card-bar"><div class="perf-card-fill" id="perf-sus-bar" style="width:0%;background:var(--green)"></div></div>
+          <div id="perf-sus-badge"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── NEOBOT BUTTON ── -->
+    <div class="neobot-bar">
+      <button class="btn-neobot" onclick="openNeobot()">
+        <div class="btn-neobot-pulse"></div>
+        <span class="btn-neobot-icon">🤖</span>
+        Get Help from NeoBot
+      </button>
+    </div>
+
+  </div><!-- /dashboard -->
+</div><!-- /content -->
+
+<script>
+/* ══════════════════════════════════════════════
+   SCORING SYSTEM — points per building type
+   ══════════════════════════════════════════════ */
+const BUILDING_SCORES = {
+  solar:   +5,   // Solar Panel
+  forest:  +10,  // Forest
+  bus:     +3,   // Electric Bus
+  recycle: +4,   // Recycling Center
+  home:    +2,   // Smart Home
+  factory: -10,  // Factory
+};
+
+/* Metrics effects (same as city builder) */
+const BUILDING_METRICS = {
+  solar:   { pollution:-8,  happiness:+6,  energy:+15, water:0,  sustainability:+10 },
+  forest:  { pollution:-14, happiness:+9,  energy:-1,  water:+6, sustainability:+12 },
+  bus:     { pollution:-9,  happiness:+11, energy:-4,  water:0,  sustainability:+8  },
+  factory: { pollution:+20, happiness:-6,  energy:-12, water:-9, sustainability:-14 },
+  recycle: { pollution:-11, happiness:+6,  energy:-2,  water:+4, sustainability:+9  },
+  home:    { pollution:+4,  happiness:+13, energy:-5,  water:-4, sustainability:+3  },
+};
+
+/* ── Compute score & metrics from grid ── */
+function computeFromGrid(grid) {
+  let score = 0;
+  let pol = 18, hap = 62, energy = 50, water = 72, sus = 45;
+  const counts = {};
+
+  grid.filter(Boolean).forEach(id => {
+    // Score
+    if (BUILDING_SCORES[id] !== undefined) score += BUILDING_SCORES[id];
+    // Metrics
+    const m = BUILDING_METRICS[id];
+    if (m) {
+      pol    += m.pollution;
+      hap    += m.happiness;
+      energy += m.energy;
+      water  += m.water;
+      sus    += m.sustainability;
+    }
+    counts[id] = (counts[id] || 0) + 1;
+  });
+
+  pol    = Math.max(0, Math.min(100, Math.round(pol)));
+  hap    = Math.max(0, Math.min(100, Math.round(hap)));
+  energy = Math.max(0, Math.min(100, Math.round(energy)));
+  water  = Math.max(0, Math.min(100, Math.round(water)));
+  sus    = Math.max(0, Math.min(100, Math.round(sus)));
+  score  = Math.max(0, score); // floor at 0
+
+  return { score, pol, hap, energy, water, sus, counts };
+}
+
+/* ── Cursor ── */
 const cursor = document.getElementById('cursor');
 const trail  = document.getElementById('cursor-trail');
 document.addEventListener('mousemove', e => {
   cursor.style.left = e.clientX+'px'; cursor.style.top = e.clientY+'px';
   trail.style.left  = e.clientX+'px'; trail.style.top  = e.clientY+'px';
 });
+document.querySelectorAll('button,a,.game-card,.stat-card,.perf-card').forEach(el => {
+  el.addEventListener('mouseenter', () => cursor.style.transform='translate(-50%,-50%) scale(2)');
+  el.addEventListener('mouseleave', () => cursor.style.transform='translate(-50%,-50%) scale(1)');
+});
 
-function resetCursorScale() {
-  if (cursor) cursor.style.transform = 'translate(-50%, -50%) scale(1)';
-}
-
-function addCursorHoverListeners() {
-  document.querySelectorAll('button,a,.game-card,.stat-card,.perf-card,.nb-chip').forEach(el => {
-    if(!el.hasAttribute('data-cursor-bound')) {
-      el.setAttribute('data-cursor-bound', 'true');
-      el.addEventListener('mouseenter', () => { if(cursor) cursor.style.transform='translate(-50%,-50%) scale(2)'; });
-      el.addEventListener('mouseleave', () => { if(cursor) cursor.style.transform='translate(-50%,-50%) scale(1)'; });
-    }
-  });
-}
-
-// --- Background Matrix Canvas ---
+/* ── Background Canvas ── */
 (function(){
   const c=document.getElementById('bg-canvas'), ctx=c.getContext('2d');
   let W,H,t=0;
   const resize=()=>{W=c.width=window.innerWidth;H=c.height=window.innerHeight;};
   resize(); window.addEventListener('resize',resize);
-  const pts=Array.from({length:50},()=>({x:Math.random(),y:Math.random(),vx:(Math.random()-.5)*.0003,vy:(Math.random()-.5)*.0003,r:.5+Math.random()*1.2,p_phase:Math.random()}));
+  const pts=Array.from({length:50},()=>({x:Math.random(),y:Math.random(),vx:(Math.random()-.5)*.0003,vy:(Math.random()-.5)*.0003,r:.5+Math.random()*1.2,a:Math.random()}));
   function draw(){
     t+=.006; ctx.clearRect(0,0,W,H);
-    ctx.fillStyle='#050816';
-    ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#050816'; ctx.fillRect(0,0,W,H);
     for(let i=0;i<W;i+=48){ctx.strokeStyle=`rgba(0,255,178,${.008+.005*Math.sin(t+i*.01)})`;ctx.lineWidth=.4;ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,H);ctx.stroke();}
     for(let j=0;j<H;j+=48){ctx.strokeStyle=`rgba(0,255,178,${.008+.005*Math.sin(t+j*.01)})`;ctx.lineWidth=.4;ctx.beginPath();ctx.moveTo(0,j);ctx.lineTo(W,j);ctx.stroke();}
     [{x:.1,y:.2,r:300,c:'0,209,255',a:.04},{x:.9,y:.8,r:280,c:'0,255,178',a:.035},{x:.5,y:.4,r:200,c:'123,47,190',a:.03}].forEach(g=>{
@@ -699,397 +754,438 @@ function addCursorHoverListeners() {
       p.x+=p.vx; p.y+=p.vy;
       if(p.x<0)p.x=1; if(p.x>1)p.x=0; if(p.y<0)p.y=1; if(p.y>1)p.y=0;
       ctx.beginPath(); ctx.arc(p.x*W,p.y*H,p.r,0,Math.PI*2);
-      ctx.fillStyle=`rgba(0,255,178,${.15+.2*Math.abs(Math.sin(t+p.p_phase*8))})`; ctx.fill();
+      ctx.fillStyle=`rgba(0,255,178,${.15+.2*Math.abs(Math.sin(t+p.a*8))})`; ctx.fill();
     });
     requestAnimationFrame(draw);
   }
   draw();
 })();
 
-// --- Topbar Clock ---
+/* ── Clock ── */
 function updateClock(){ document.getElementById('tb-time').textContent=new Date().toTimeString().slice(0,8); }
-setInterval(updateClock,1000); 
-updateClock();
+setInterval(updateClock,1000); updateClock();
 
-// --- Core Helper Functions ---
-function getPerfFromPollution(pol) {
-  if (pol <= 20) return { label:'Excellent', cls:'excellent', score:95, color:'var(--green)' };
-  if (pol <= 40) return { label:'Good',      cls:'good',      score:75, color:'var(--cyan)' };
-  if (pol <= 65) return { label:'Moderate',  cls:'moderate',  score:50, color:'var(--yellow)' };
-  return                { label:'Poor',       cls:'poor',      score:20, color:'var(--red)' };
-}
+/* ── Performance Helpers ── */
 function getPerfFromScore(score) {
-  if (score >= 800) return { label:'Excellent', cls:'excellent', color:'var(--green)' };
-  if (score >= 500) return { label:'Good',      cls:'good',      color:'var(--cyan)' };
-  if (score >= 250) return { label:'Moderate',  cls:'moderate',  color:'var(--yellow)' };
-  return                   { label:'Poor',       cls:'poor',      color:'var(--red)' };
+  if (score >= 80) return { label:'Excellent', cls:'excellent' };
+  if (score >= 55) return { label:'Good',      cls:'good' };
+  if (score >= 30) return { label:'Moderate',  cls:'moderate' };
+  return                  { label:'Poor',       cls:'poor' };
 }
 function badge(cfg){ return `<span class="perf-badge ${cfg.cls}"><span class="perf-dot"></span>${cfg.label}</span>`; }
+function getColor(pct){ return pct>=70?'var(--green)':pct>=40?'var(--yellow)':'var(--red)'; }
 
-function openConfirmModal() {
-  document.getElementById('new-modal').classList.add('show');
-}
-
-function closeModal(id) { 
-  document.getElementById(id).classList.remove('show'); 
-  resetCursorScale();
-}
-
-// --- Game State & Simulation Logic ---
-let cityData = {
-  score: 0,
-  pollution: 0,
-  happiness: 0,
-  buildings: 0,
-  disasters: 0,
-  breakdown: { industrial: 0, residential: 0, transport: 0, green: 0 },
-  disasterEvents: []
-};
-
-function loadCityData() {
-  const stored = localStorage.getItem('neo_city_current');
-  if (stored) {
-    cityData = JSON.parse(stored);
-  } else {
-    cityData = {
-      score: 485,
-      pollution: 34,
-      happiness: 78,
-      buildings: 24,
-      disasters: 1,
-      breakdown: { industrial: 45, residential: 30, transport: 50, green: 40 },
-      disasterEvents: [
-        { name: "Grid Overload", time: "20 mins ago", severity: "med" }
-      ]
-    };
-    saveCityData();
-  }
-}
-
-function saveCityData() {
-  localStorage.setItem('neo_city_current', JSON.stringify(cityData));
-}
-
-function startNewGame() {
-  let history = JSON.parse(localStorage.getItem('neo_city_history') || '[]');
-  
-  if (cityData.buildings > 0 || cityData.score > 0) {
-    const scorePerf = getPerfFromScore(cityData.score);
-    history.unshift({
-      id: history.length + 1,
-      score: cityData.score,
-      pollution: cityData.pollution,
-      buildings: cityData.buildings,
-      disasters: cityData.disasters,
-      perfLabel: scorePerf.label,
-      perfCls: scorePerf.cls,
-      date: new Date().toLocaleDateString(undefined, {month:'short', day:'numeric'})
-    });
-    localStorage.setItem('neo_city_history', JSON.stringify(history));
-  }
-
-  // Pure clean data layout wipe
-  cityData = {
-    score: 0,
-    pollution: 0,
-    happiness: 100,
-    buildings: 0,
-    disasters: 0,
-    breakdown: { industrial: 0, residential: 0, transport: 0, green: 100 },
-    disasterEvents: []
-  };
-  
-  saveCityData();
-  
-  // Close container visually & clear cursor scaling bugs
-  closeModal('new-modal');
-  
-  // Directly force link redirection back to your clean deployment constructor layout tab!
-  window.location.href = "city.html"; 
-}
-
-// --- High Tech Canvas Score Chart ---
+/* ── Score Chart ── */
 function drawScoreChart(history) {
   const canvas = document.getElementById('scoreChart');
-  if(!canvas) return;
   const W = canvas.offsetWidth; const H = 200;
   canvas.width = W * window.devicePixelRatio;
   canvas.height = H * window.devicePixelRatio;
   canvas.style.width = W+'px'; canvas.style.height = H+'px';
   const ctx = canvas.getContext('2d');
   ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-  
-  ctx.fillStyle = 'rgba(5,8,22,0.4)';
+
+  ctx.fillStyle = 'rgba(0,0,0,.2)';
   ctx.fillRect(0,0,W,H);
 
   if (!history || history.length === 0) {
     ctx.fillStyle = 'rgba(232,244,255,.2)';
     ctx.font = '11px Orbitron, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('No history data available — play a match first', W/2, H/2);
+    ctx.fillText('No history yet — play a game first', W/2, H/2);
     return;
   }
 
-  const chartData = [...history].slice(0, 7).reverse();
-  const maxScore = Math.max(...chartData.map(d => d.score), 100) * 1.15;
-  const paddingX = 45; const paddingY = 30;
-  const graphW = W - paddingX * 2; const graphH = H - paddingY * 2;
+  const scores = history.map(h=>h.score);
+  const maxS = Math.max(...scores, 30);
+  const pad = { t:20, r:16, b:28, l:40 };
+  const cW = W - pad.l - pad.r;
+  const cH = H - pad.t - pad.b;
 
-  ctx.strokeStyle = 'rgba(0,255,178,0.05)';
-  ctx.lineWidth = 1;
-  for(let i = 0; i <= 4; i++) {
-    let y = paddingY + (graphH / 4) * i;
-    ctx.beginPath(); ctx.moveTo(paddingX, y); ctx.lineTo(W - paddingX, y); ctx.stroke();
-  }
-
-  let points = chartData.map((d, index) => {
-    let x = paddingX + (graphW / (Math.max(chartData.length - 1, 1))) * index;
-    let y = H - paddingY - (d.score / maxScore) * graphH;
-    return {x, y, ...d};
+  [0,25,50,75,100].forEach(pct => {
+    const y = pad.t + cH - (pct/100)*cH;
+    ctx.strokeStyle = 'rgba(0,255,178,.07)'; ctx.lineWidth = .5;
+    ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(pad.l+cW,y); ctx.stroke();
+    ctx.fillStyle = 'rgba(232,244,255,.2)'; ctx.font = '8px Orbitron,sans-serif'; ctx.textAlign='right';
+    ctx.fillText(Math.round(maxS*pct/100), pad.l-4, y+3);
   });
 
-  if(points.length > 1) {
-    ctx.beginPath();
-    ctx.moveTo(points[0].x, H - paddingY);
-    points.forEach(p => ctx.lineTo(p.x, p.y));
-    ctx.lineTo(points[points.length - 1].x, H - paddingY);
-    let grad = ctx.createLinearGradient(0, paddingY, 0, H - paddingY);
-    grad.addColorStop(0, 'rgba(0,255,178,0.12)');
-    grad.addColorStop(1, 'rgba(0,255,178,0)');
-    ctx.fillStyle = grad; ctx.fill();
-  }
+  const xs = history.map((_,i) => pad.l + (history.length===1 ? cW/2 : i/(history.length-1)*cW));
+  const ys = scores.map(s => pad.t + cH - (s/maxS)*cH);
 
-  ctx.strokeStyle = '#00FFB2';
-  ctx.lineWidth = 2.5;
-  ctx.shadowColor = 'rgba(0,255,178,0.4)';
-  ctx.shadowBlur = 8;
+  const grad = ctx.createLinearGradient(0,pad.t,0,pad.t+cH);
+  grad.addColorStop(0,'rgba(0,255,178,.18)');
+  grad.addColorStop(1,'rgba(0,255,178,.01)');
   ctx.beginPath();
-  points.forEach((p, i) => { if(i===0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y); });
-  ctx.stroke();
-  ctx.shadowBlur = 0;
+  ctx.moveTo(xs[0],pad.t+cH);
+  xs.forEach((x,i)=>ctx.lineTo(x,ys[i]));
+  ctx.lineTo(xs[xs.length-1],pad.t+cH);
+  ctx.closePath();
+  ctx.fillStyle=grad; ctx.fill();
 
-  points.forEach(p => {
-    ctx.fillStyle = '#050816';
-    ctx.strokeStyle = '#00D1FF';
-    ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+  ctx.beginPath();
+  xs.forEach((x,i)=>i===0?ctx.moveTo(x,ys[i]):ctx.lineTo(x,ys[i]));
+  ctx.strokeStyle='rgba(0,255,178,.8)'; ctx.lineWidth=2; ctx.stroke();
 
-    ctx.fillStyle = 'rgba(232,244,255,0.7)';
-    ctx.font = '9px Orbitron, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(p.score, p.x, p.y - 10);
+  const pols = history.map(h => pad.t + cH - ((h.pollution||0)/100)*cH);
+  ctx.beginPath();
+  xs.forEach((x,i)=>i===0?ctx.moveTo(x,pols[i]):ctx.lineTo(x,pols[i]));
+  ctx.strokeStyle='rgba(255,92,92,.5)'; ctx.lineWidth=1.5; ctx.setLineDash([4,3]); ctx.stroke();
+  ctx.setLineDash([]);
+
+  xs.forEach((x,i)=>{
+    ctx.beginPath(); ctx.arc(x,ys[i],3.5,0,Math.PI*2);
+    ctx.fillStyle='#00FFB2'; ctx.strokeStyle='#050816'; ctx.lineWidth=1.5;
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle='rgba(232,244,255,.25)'; ctx.font='8px Orbitron,sans-serif'; ctx.textAlign='center';
+    ctx.fillText('G'+(i+1), x, H-6);
   });
+
+  ctx.fillStyle='rgba(0,255,178,.7)'; ctx.font='8px Orbitron,sans-serif'; ctx.textAlign='left';
+  ctx.fillRect(pad.l,6,12,2); ctx.fillText('Score', pad.l+16, 10);
+  ctx.strokeStyle='rgba(255,92,92,.6)'; ctx.lineWidth=1.5; ctx.setLineDash([4,3]);
+  ctx.beginPath(); ctx.moveTo(pad.l+65,7); ctx.lineTo(pad.l+77,7); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='rgba(255,92,92,.7)'; ctx.fillText('Pollution', pad.l+82, 10);
 }
 
-// --- Render Layout Component Engines ---
-function renderDashboard() {
-  loadCityData();
-  const history = JSON.parse(localStorage.getItem('neo_city_history') || '[]');
+/* ══════════════════════════════════════════════
+   MAIN DASHBOARD LOAD
+   ══════════════════════════════════════════════ */
+function loadDashboard() {
+  const gridRaw    = localStorage.getItem('nc_grid');
+  const historyRaw = localStorage.getItem('nc_history');
+  const disasterRaw= localStorage.getItem('nc_disasters');
 
-  document.getElementById('s-score').textContent = cityData.score;
-  document.getElementById('s-poll').textContent = cityData.pollution;
-  document.getElementById('s-hap').textContent = cityData.happiness;
-  document.getElementById('s-build').textContent = cityData.buildings;
-  document.getElementById('s-dis').textContent = cityData.disasters;
+  const history   = historyRaw   ? JSON.parse(historyRaw)   : [];
+  const disasters = disasterRaw  ? JSON.parse(disasterRaw)  : [];
 
-  if (history.length > 0) {
-    const avgScore = history.reduce((acc, curr) => acc + curr.score, 0) / history.length;
-    const avgPoll = history.reduce((acc, curr) => acc + curr.pollution, 0) / history.length;
-    
-    const scoreDiff = cityData.score - avgScore;
-    const pollDiff = cityData.pollution - avgPoll;
+  const hasSave = !!gridRaw;
+  const grid    = hasSave ? JSON.parse(gridRaw) : [];
 
-    document.getElementById('s-score-delta').className = `stat-delta ${scoreDiff >= 0 ? 'up' : 'down'}`;
-    document.getElementById('s-score-delta').textContent = `${scoreDiff >= 0 ? '▲' : '▼'} ${Math.abs(Math.round(scoreDiff))} vs avg`;
+  /* ── Compute everything from grid ── */
+  const computed = hasSave ? computeFromGrid(grid) : null;
+  const placed   = grid.filter(Boolean).length;
 
-    document.getElementById('s-poll-delta').className = `stat-delta ${pollDiff <= 0 ? 'up' : 'down'}`;
-    document.getElementById('s-poll-delta').textContent = `${pollDiff <= 0 ? '▼' : '▲'} ${Math.abs(Math.round(pollDiff))}% vs avg`;
+  /* ── Score breakdown banner ── */
+  if (hasSave && computed) {
+    renderScoreBreakdown(computed.counts, computed.score);
+    // Sync score back to localStorage so city builder modal prediction is accurate
+    localStorage.setItem('nc_city_score', computed.score);
   } else {
-    document.getElementById('s-score-delta').textContent = '';
-    document.getElementById('s-poll-delta').textContent = '';
+    renderScoreBreakdownEmpty();
   }
 
+  /* ── Stats row ── */
+  if (hasSave && computed) {
+    const scoreColor = computed.score >= 60 ? 'var(--green)' : computed.score >= 30 ? 'var(--yellow)' : 'var(--red)';
+    document.getElementById('s-score').textContent = computed.score;
+    document.getElementById('s-score').style.color = scoreColor;
+    document.getElementById('s-poll').textContent  = computed.pol + '%';
+    document.getElementById('s-poll').style.color  = computed.pol < 40 ? 'var(--green)' : computed.pol < 70 ? 'var(--yellow)' : 'var(--red)';
+    document.getElementById('s-hap').textContent   = computed.hap + '%';
+    document.getElementById('s-hap').style.color   = computed.hap >= 60 ? 'var(--green)' : computed.hap >= 40 ? 'var(--yellow)' : 'var(--red)';
+    document.getElementById('s-build').textContent = placed;
+  } else {
+    ['s-score','s-poll','s-hap','s-build'].forEach(id => setText(id, '—'));
+  }
+  setText('s-dis', disasters.length);
+
+  /* ── Pollution tracker — driven by actual computed pollution ── */
+  if (hasSave && computed) {
+    const pol = computed.pol;
+    const pollColor = pol < 25 ? 'var(--green)' : pol < 50 ? 'var(--yellow)' : pol < 75 ? 'var(--red)' : '#ff2222';
+    document.getElementById('poll-gauge-num').textContent = pol + '%';
+    document.getElementById('poll-gauge-num').style.color = pollColor;
+    document.getElementById('poll-bar').style.width      = pol + '%';
+    document.getElementById('poll-bar').style.background = pollColor;
+
+    // Breakdown based on building counts
+    const counts = computed.counts;
+    const factories  = counts.factory  || 0;
+    const homes      = counts.home     || 0;
+    const buses      = counts.bus      || 0;
+    const forests    = counts.forest   || 0;
+    const solars     = counts.solar    || 0;
+    const recycles   = counts.recycle  || 0;
+
+    const indPct = Math.min(100, Math.max(0, factories * 22));
+    const resPct = Math.min(100, Math.max(0, homes * 5));
+    const trPct  = Math.min(100, Math.max(0, placed > 0 ? Math.round((placed - buses) / placed * 30) : 0));
+    const grPct  = Math.min(100, (forests + solars + recycles) * 12);
+
+    setBar('pb-industrial', indPct, 'var(--red)',    'pb-ind-val', indPct + '%');
+    setBar('pb-residential', resPct,'var(--yellow)', 'pb-res-val', resPct + '%');
+    setBar('pb-transport',   trPct, 'var(--cyan)',   'pb-tr-val',  trPct  + '%');
+    setBar('pb-green',       grPct, 'var(--green)',  'pb-gr-val',  grPct  + '%');
+  }
+
+  /* ── Disaster list ── */
+  setText('dr-num', disasters.length);
+  const drNum = document.getElementById('dr-num');
+  drNum.style.color = disasters.length===0?'var(--green)':disasters.length<3?'var(--yellow)':'var(--red)';
+  const disList = document.getElementById('disaster-list');
+  if (disasters.length === 0) {
+    disList.innerHTML = '<div class="no-disasters">✅ No disasters recorded — great city management!</div>';
+  } else {
+    disList.innerHTML = disasters.slice(-5).reverse().map(d=>`
+      <div class="dis-item">
+        <span class="dis-icon">${d.icon||'⚠️'}</span>
+        <div class="dis-info">
+          <div class="dis-name">${d.name}</div>
+          <div class="dis-time">${d.time||'—'}</div>
+        </div>
+        <span class="dis-sev ${d.severity==='high'?'high':'med'}">${(d.severity||'MED').toUpperCase()}</span>
+      </div>`).join('');
+  }
+
+  /* ── Score history ── */
+  drawScoreChart(history);
   const tbody = document.getElementById('history-tbody');
   if (history.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" class="empty-history">No game history yet. Play a game to see your scores here.</td></tr>`;
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-history">No game history yet. Complete a game session to track your scores.</td></tr>';
+    document.getElementById('overall-badge').innerHTML = '';
   } else {
-    let topScore = Math.max(...history.map(h => h.score));
-    tbody.innerHTML = history.map((h, i) => `
-      <tr>
-        <td>${history.length - i}</td>
-        <td class="score-cell">${h.score} ${h.score === topScore ? '<span class="crown-icon">👑</span>' : ''}</td>
-        <td>${h.pollution}%</td>
-        <td>${h.buildings}</td>
-        <td>${h.disasters}</td>
-        <td>${badge({label: h.perfLabel, cls: h.perfCls})}</td>
-        <td style="color:rgba(232,244,255,0.4)">${h.date}</td>
-      </tr>
-    `).join('');
+    const avgScore = Math.round(history.reduce((a,b)=>a+b.score,0)/history.length);
+    const avgPerf  = getPerfFromScore(avgScore);
+    document.getElementById('overall-badge').innerHTML =
+      `<div style="font-size:.65rem;color:rgba(232,244,255,.3);margin-bottom:4px;font-family:'Orbitron',sans-serif;letter-spacing:.1em">AVG SCORE: ${avgScore}</div>${badge(avgPerf)}`;
+
+    const maxScore = Math.max(...history.map(h => h.score));
+    tbody.innerHTML = history.slice().reverse().map((h,i)=>{
+      const scorePerf = getPerfFromScore(h.score);
+      const isHighest = h.score === maxScore;
+      const crownHtml = isHighest ? '<span class="crown-icon">👑</span>' : '';
+      return `<tr>
+        <td style="color:rgba(232,244,255,.3);font-family:'Orbitron',sans-serif;font-size:.65rem">${history.length-i}</td>
+        <td class="score-cell" style="color:${h.score>=60?'var(--green)':h.score>=30?'var(--yellow)':'var(--red)'}">${h.score}${crownHtml}</td>
+        <td style="color:${(h.pollution||0)<40?'var(--green)':(h.pollution||0)<70?'var(--yellow)':'var(--red)'}">${h.pollution||0}%</td>
+        <td style="color:var(--cyan)">${h.buildings||0}</td>
+        <td style="color:${(h.disasters||0)===0?'var(--green)':'var(--red)'}">${h.disasters||0}</td>
+        <td>${badge(scorePerf)}</td>
+        <td style="color:rgba(232,244,255,.3);font-size:.72rem">${h.date||'—'}</td>
+      </tr>`;
+    }).join('');
   }
 
-  const polCfg = getPerfFromPollution(cityData.pollution);
-  const gaugeNum = document.getElementById('poll-gauge-num');
-  gaugeNum.textContent = `${cityData.pollution}%`;
-  gaugeNum.style.color = polCfg.color;
+  /* ── Performance cards — based on actual computed score ── */
+  if (hasSave && computed) {
+    const s = computed.score;
+    // Scale score to 0–100 pct for display (assuming ~100 pts = 100%)
+    const overallPct  = Math.min(100, Math.round(s));
+    const pollPerfPct = Math.min(100, Math.max(0, 100 - computed.pol));
+    const susPct      = Math.min(100, computed.sus);
 
-  const pBar = document.getElementById('poll-bar');
-  pBar.style.width = `${cityData.pollution}%`;
-  pBar.style.background = polCfg.color;
-
-  document.getElementById('pb-industrial').style.width = `${cityData.breakdown.industrial}%`;
-  document.getElementById('pb-ind-val').textContent = `${cityData.breakdown.industrial}%`;
-  document.getElementById('pb-residential').style.width = `${cityData.breakdown.residential}%`;
-  document.getElementById('pb-res-val').textContent = `${cityData.breakdown.residential}%`;
-  document.getElementById('pb-transport').style.width = `${cityData.breakdown.transport}%`;
-  document.getElementById('pb-tr-val').textContent = `${cityData.breakdown.transport}%`;
-  document.getElementById('pb-green').style.width = `${cityData.breakdown.green}%`;
-  document.getElementById('pb-gr-val').textContent = `${cityData.breakdown.green}%`;
-
-  const disList = document.getElementById('disaster-list');
-  document.getElementById('dr-num').textContent = cityData.disasters;
-  document.getElementById('dr-num').style.color = cityData.disasters > 2 ? 'var(--red)' : (cityData.disasters > 0 ? 'var(--yellow)' : 'var(--green)');
-  
-  if (cityData.disasterEvents.length === 0) {
-    disList.innerHTML = `<div class="no-disasters">No disasters recorded yet.</div>`;
+    setPerfCard('perf-overall', s + ' pts',       overallPct,  getColor(overallPct),  getPerfFromScore(overallPct));
+    setPerfCard('perf-poll',    pollPerfPct + '%', pollPerfPct, getColor(pollPerfPct), getPerfFromScore(pollPerfPct));
+    setPerfCard('perf-sus',     susPct + '%',      susPct,      getColor(susPct),      getPerfFromScore(susPct));
   } else {
-    disList.innerHTML = cityData.disasterEvents.map(e => `
-      <div class="dis-item">
-        <span class="dis-icon">⚠</span>
-        <div class="dis-info">
-          <div class="dis-name">${e.name}</div>
-          <div class="dis-time">${e.time}</div>
-        </div>
-        <span class="dis-sev ${e.severity}">${e.severity === 'high' ? 'CRITICAL' : 'MODERATE'}</span>
-      </div>
-    `).join('');
+    ['perf-overall','perf-poll','perf-sus'].forEach(id => {
+      document.getElementById(id).textContent = 'No Data';
+      document.getElementById(id+'-badge').innerHTML = '';
+    });
   }
-
-  const scoreCfg = getPerfFromScore(cityData.score);
-  const susScore = Math.max(0, Math.min(100, Math.round(cityData.happiness * 0.4 + (100 - cityData.pollution) * 0.4 + (cityData.breakdown.green * 0.2))));
-  const susCfg = getPerfFromPollution(100 - susScore);
-
-  document.getElementById('overall-badge').innerHTML = badge(scoreCfg);
-  
-  document.getElementById('perf-overall').textContent = cityData.score;
-  document.getElementById('perf-overall').style.color = scoreCfg.color;
-  document.getElementById('perf-overall-bar').style.width = `${Math.min(100, (cityData.score/1200)*100)}%`;
-  document.getElementById('perf-overall-bar').style.background = scoreCfg.color;
-  document.getElementById('perf-overall-badge').innerHTML = badge(scoreCfg);
-
-  document.getElementById('perf-poll').textContent = `${cityData.pollution}%`;
-  document.getElementById('perf-poll').style.color = polCfg.color;
-  document.getElementById('perf-poll-bar').style.width = `${cityData.pollution}%`;
-  document.getElementById('perf-poll-bar').style.background = polCfg.color;
-  document.getElementById('perf-poll-badge').innerHTML = badge(polCfg);
-
-  document.getElementById('perf-sus').textContent = `${susScore}/100`;
-  document.getElementById('perf-sus').style.color = susCfg.color;
-  document.getElementById('perf-sus-bar').style.width = `${susScore}%`;
-  document.getElementById('perf-sus-bar').style.background = susCfg.color;
-  document.getElementById('perf-sus-badge').innerHTML = badge(susCfg);
-
-  drawScoreChart(history);
-  addCursorHoverListeners();
 }
 
-// --- NeoBot Simulation Engine ---
-const botMessagesContainer = document.getElementById('nb-messages');
+/* ── Score Breakdown Banner ── */
+const BUILDING_DEFS = [
+  { id:'solar',   emoji:'☀️', label:'Solar Plant',   pts:+5  },
+  { id:'forest',  emoji:'🌳', label:'Forest',         pts:+10 },
+  { id:'bus',     emoji:'🚌', label:'Electric Bus',   pts:+3  },
+  { id:'recycle', emoji:'♻️', label:'Recycle Center', pts:+4  },
+  { id:'home',    emoji:'🏠', label:'Smart Home',     pts:+2  },
+  { id:'factory', emoji:'🏭', label:'Factory',        pts:-10 },
+];
+
+function renderScoreBreakdown(counts, total) {
+  const items = BUILDING_DEFS
+    .filter(b => (counts[b.id] || 0) > 0)
+    .map(b => {
+      const n    = counts[b.id];
+      const sub  = n * b.pts;
+      const cls  = b.pts > 0 ? 'pos' : 'neg';
+      const sign = b.pts > 0 ? '+' : '';
+      return `<div class="sbb-item">
+        <span class="sbb-emoji">${b.emoji}</span>
+        <span class="sbb-label">${n}× ${b.label}</span>
+        <span class="sbb-pts ${cls}">${sign}${sub}</span>
+      </div>`;
+    });
+
+  if (items.length === 0) {
+    document.getElementById('sbb-items').innerHTML =
+      '<span style="font-size:.75rem;color:rgba(232,244,255,.25);letter-spacing:.06em">No buildings placed yet — go to City Builder to start!</span>';
+  } else {
+    document.getElementById('sbb-items').innerHTML = items.join('');
+  }
+
+  const totalEl   = document.getElementById('sbb-total-val');
+  totalEl.textContent = total + ' pts';
+  totalEl.style.color = total >= 0 ? 'var(--green)' : 'var(--red)';
+}
+
+function renderScoreBreakdownEmpty() {
+  document.getElementById('sbb-items').innerHTML =
+    '<span style="font-size:.75rem;color:rgba(232,244,255,.25);letter-spacing:.06em">No active city — go to City Builder to start!</span>';
+  const totalEl = document.getElementById('sbb-total-val');
+  totalEl.textContent = '0 pts';
+  totalEl.style.color = 'var(--green)';
+}
+
+/* ── Helpers ── */
+function setText(id, val) { const el=document.getElementById(id); if(el) el.textContent=val; }
+function setBar(barId, pct, color, valId, val) {
+  const b=document.getElementById(barId); if(b){b.style.width=pct+'%';b.style.background=color;}
+  const v=document.getElementById(valId); if(v) v.textContent=val;
+}
+function setPerfCard(id, valText, pct, color, perf){
+  const el=document.getElementById(id);
+  el.textContent=valText; el.style.color=color;
+  document.getElementById(id+'-bar').style.width=pct+'%';
+  document.getElementById(id+'-bar').style.background=color;
+  document.getElementById(id+'-badge').innerHTML=badge(perf);
+}
+
+/* ── Game Actions ── */
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+
+function startNewGame(){
+  const gridRaw = localStorage.getItem('nc_grid');
+  if (gridRaw) {
+    const grid = JSON.parse(gridRaw);
+    const computed = computeFromGrid(grid);
+    const placed   = grid.filter(Boolean).length;
+    const disRaw   = localStorage.getItem('nc_disasters');
+    const disasters = disRaw ? JSON.parse(disRaw) : [];
+    const historyRaw = localStorage.getItem('nc_history');
+    const history    = historyRaw ? JSON.parse(historyRaw) : [];
+
+    if (placed > 0) {
+      history.push({
+        score:     computed.score,
+        pollution: computed.pol,
+        buildings: placed,
+        disasters: disasters.length,
+        date:      new Date().toLocaleDateString()
+      });
+      localStorage.setItem('nc_history', JSON.stringify(history));
+    }
+  }
+  localStorage.removeItem('nc_grid');
+  localStorage.removeItem('nc_counts');
+  localStorage.removeItem('nc_city_score');
+  localStorage.removeItem('nc_disasters');
+  closeModal('new-modal');
+  window.location.href = 'city.html';
+}
+
+/* ══════════════════════════════════════════════
+   NEOBOT
+   ══════════════════════════════════════════════ */
+const NEOBOT_RESPONSES = {
+  pollution: [
+    "Your pollution is driven by Factories 🏭 (each adds 20% pollution) and Homes 🏠 (each adds 4%). Offset them with Forests 🌳 (−14%) and Solar Panels ☀️ (−8%) for quick wins!",
+    "Pro tip: One Forest neutralises most of a Factory's pollution. Add Recycling Centers ♻️ too — they cut 11% each and give you +4 score points.",
+    "Every Electric Bus 🚌 reduces pollution by 9% AND scores +3 points. They're one of the best value buildings in the game!"
+  ],
+  score: [
+    "Score is calculated directly from your buildings: ☀️ Solar +5 pts, 🌳 Forest +10 pts, 🚌 Bus +3 pts, ♻️ Recycle +4 pts, 🏠 Home +2 pts, 🏭 Factory −10 pts.",
+    "Forests give the highest score per tile at +10 each! Fill empty grid squares with forests to maximise your total before clicking 'View My City'.",
+    "Avoid Factories unless necessary — each one costs you 10 points. Even two factories can wipe out the score from several green buildings."
+  ],
+  buildings: [
+    "Best high-score combo: 🌳 Forest + ☀️ Solar + ♻️ Recycle. Together they score +19 per group of 3 tiles while drastically cutting pollution.",
+    "Smart Homes 🏠 score only +2 pts each but boost happiness by 13% — great if your citizens are unhappy. Pair with Electric Buses for best results.",
+    "Recycling Centers ♻️ are underrated: +4 pts, −11% pollution, +4% water quality. Add them near clusters of Factories or Homes."
+  ],
+  disasters: [
+    "Disasters are triggered when pollution exceeds 72%, water drops below 25%, or happiness falls below 30%. Watch the metrics bar in the builder!",
+    "Too many Factories without green offsets almost guarantees an Air Crisis disaster. Rule of thumb: for every Factory, place at least one Forest.",
+    "Civil Unrest happens when happiness drops too low. Electric Buses (+11% happiness) and Smart Homes (+13%) are your best counters."
+  ],
+  analyse: [
+    "Based on your current score, your city is performing at {perf} level. {advice}",
+  ],
+  default: [
+    "The scoring system is simple: green buildings earn points, Factories lose them. Maximise Forests and Solar Panels for the best score!",
+    "Check the Score Breakdown banner at the top of the dashboard — it shows exactly how many points each building type is contributing.",
+    "Your pollution tracker is calculated from your actual building mix. Fewer factories + more forests = cleaner city and higher score! 📈"
+  ]
+};
+
+function getNeoBotReply(msg, score) {
+  const m = msg.toLowerCase();
+  let pool;
+  if (m.includes('pollution') || m.includes('clean') || m.includes('air')) pool = NEOBOT_RESPONSES.pollution;
+  else if (m.includes('score') || m.includes('point') || m.includes('boost') || m.includes('increase')) pool = NEOBOT_RESPONSES.score;
+  else if (m.includes('building') || m.includes('place') || m.includes('construct') || m.includes('next')) pool = NEOBOT_RESPONSES.buildings;
+  else if (m.includes('disaster') || m.includes('prevent') || m.includes('crisis')) pool = NEOBOT_RESPONSES.disasters;
+  else if (m.includes('analys') || m.includes('performance') || m.includes('current')) {
+    const perf = score >= 80 ? 'Excellent' : score >= 55 ? 'Good' : score >= 30 ? 'Moderate' : 'Poor';
+    const advice = score >= 80 ? 'Your city is thriving! Push for 100+ by adding more Forests and Solar Panels.'
+                 : score >= 55 ? 'Good progress. A few more Forests (+10 each) would push you to Excellent.'
+                 : score >= 30 ? 'Mid-range. Replace any Factories with Recycling Centers for a quick boost.'
+                 : 'Early game. Focus on Forests (best pts per tile) before adding other structures.';
+    return NEOBOT_RESPONSES.analyse[0].replace('{perf}', perf).replace('{advice}', advice);
+  }
+  else pool = NEOBOT_RESPONSES.default;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
 
 function openNeobot() {
   document.getElementById('neobot-overlay').classList.add('show');
-  if(botMessagesContainer.children.length === 0) {
-    showBotMessage("Greetings, Architect. I am NEOBOT, your predictive urban core processor. What systems shall we diagnose today?");
+  const msgs = document.getElementById('nb-messages');
+  if (msgs.children.length === 0) {
+    const gridRaw = localStorage.getItem('nc_grid');
+    const score   = gridRaw ? computeFromGrid(JSON.parse(gridRaw)).score : 0;
+    const greeting = score > 0
+      ? `Hello, Mayor! 👋 Your current city score is <strong>${score} points</strong>. I know exactly how that's calculated — ask me anything about scoring, pollution, or building strategy!`
+      : `Hello! 👋 I'm NeoBot. Start building your city to get personalised score insights. Remember: Forests = +10 pts, Solar = +5 pts, Factories = −10 pts!`;
+    appendBotMessage(greeting);
   }
 }
 
-function closeNeobot() { 
-  document.getElementById('neobot-overlay').classList.remove('show'); 
-  resetCursorScale();
-}
-function handleOverlayClick(e) { if(e.target.id === 'neobot-overlay') closeNeobot(); }
+function closeNeobot() { document.getElementById('neobot-overlay').classList.remove('show'); }
+function handleOverlayClick(e) { if (e.target === document.getElementById('neobot-overlay')) closeNeobot(); }
 
-function showBotMessage(text) {
-  const msg = document.createElement('div');
-  msg.className = 'nb-msg bot';
-  msg.innerHTML = `
-    <div class="nb-msg-avatar">🤖</div>
-    <div class="nb-bubble">${text}</div>
-  `;
-  botMessagesContainer.appendChild(msg);
-  botMessagesContainer.scrollTop = botMessagesContainer.scrollHeight;
+function appendBotMessage(text) {
+  const msgs = document.getElementById('nb-messages');
+  const div = document.createElement('div');
+  div.className = 'nb-msg bot';
+  div.innerHTML = `<div class="nb-msg-avatar">🤖</div><div class="nb-bubble">${text}</div>`;
+  msgs.appendChild(div); msgs.scrollTop = msgs.scrollHeight;
 }
-
-function showUserMessage(text) {
-  const msg = document.createElement('div');
-  msg.className = 'nb-msg user';
-  msg.innerHTML = `
-    <div class="nb-msg-avatar">👤</div>
-    <div class="nb-bubble">${text}</div>
-  `;
-  botMessagesContainer.appendChild(msg);
-  botMessagesContainer.scrollTop = botMessagesContainer.scrollHeight;
+function appendUserMessage(text) {
+  const msgs = document.getElementById('nb-messages');
+  const div = document.createElement('div');
+  div.className = 'nb-msg user';
+  div.innerHTML = `<div class="nb-bubble">${text}</div><div class="nb-msg-avatar">👤</div>`;
+  msgs.appendChild(div); msgs.scrollTop = msgs.scrollHeight;
 }
-
-function showTypingIndicator() {
-  const typing = document.createElement('div');
-  typing.className = 'nb-msg bot';
-  typing.id = 'nb-typing-indicator';
-  typing.innerHTML = `
-    <div class="nb-msg-avatar">🤖</div>
-    <div class="nb-bubble"><div class="nb-typing"><span></span><span></span><span></span></div></div>
-  `;
-  botMessagesContainer.appendChild(typing);
-  botMessagesContainer.scrollTop = botMessagesContainer.scrollHeight;
+function showTyping() {
+  const msgs = document.getElementById('nb-messages');
+  const div = document.createElement('div');
+  div.className = 'nb-msg bot'; div.id = 'nb-typing-indicator';
+  div.innerHTML = `<div class="nb-msg-avatar">🤖</div><div class="nb-bubble"><div class="nb-typing"><span></span><span></span><span></span></div></div>`;
+  msgs.appendChild(div); msgs.scrollTop = msgs.scrollHeight;
 }
-
-function removeTypingIndicator() {
-  const el = document.getElementById('nb-typing-indicator');
-  if(el) el.remove();
-}
-
+function hideTyping() { const el=document.getElementById('nb-typing-indicator'); if(el) el.remove(); }
+function sendQuick(text) { document.getElementById('nb-quick').style.display='none'; sendMessageText(text); }
 function sendMessage() {
-  const input = document.getElementById('nb-input');
-  const txt = input.value.trim();
-  if(!txt) return;
-  input.value = '';
-  processQuery(txt);
+  const input=document.getElementById('nb-input');
+  const text=input.value.trim(); if(!text) return;
+  input.value=''; document.getElementById('nb-quick').style.display='none'; sendMessageText(text);
+}
+function sendMessageText(text) {
+  appendUserMessage(text); showTyping();
+  const gridRaw = localStorage.getItem('nc_grid');
+  const score   = gridRaw ? computeFromGrid(JSON.parse(gridRaw)).score : 0;
+  setTimeout(() => { hideTyping(); appendBotMessage(getNeoBotReply(text, score)); }, 900+Math.random()*600);
 }
 
-function sendQuick(txt) { processQuery(txt); }
-
-function processQuery(prompt) {
-  showUserMessage(prompt);
-  showTypingIndicator();
-
-  setTimeout(() => {
-    removeTypingIndicator();
-    let lower = prompt.toLowerCase();
-    let reply = "Query logged. Core diagnostics standard matrix online. Ensure green coverage balances commercial outputs.";
-
-    if (lower.includes('pollution')) {
-      reply = `Current pollution stands at ${cityData.pollution}%. To clear atmospheric toxins, construct grid networks of Green Covers. Reducing industrial zones will directly drop rates immediately.`;
-    } else if (lower.includes('score')) {
-      reply = `Your city rating sits at ${cityData.score} points. Boost optimization variables by upgrading existing zoning matrix layouts and satisfying resident health indicators while maintaining sub-40% pollution indexes.`;
-    } else if (lower.includes('building')) {
-      reply = `Current expansion arrays utilize ${cityData.buildings} objects. Balance structural loads with Green Cover placements to keep industrial runoff within safe, sustainable margins.`;
-    } else if (lower.includes('disaster')) {
-      reply = `Systems check: ${cityData.disasters} events recorded. High grid consumption spikes industrial failure rates. Upgrade infrastructural capacity grids to shield zones from emergency loads.`;
-    } else if (lower.includes('analyse') || lower.includes('performance')) {
-      reply = `Complete Analytical Core Readout: Score grading ranks [${getPerfFromScore(cityData.score).label.toUpperCase()}]. Pollution vectors are running [${getPerfFromPollution(cityData.pollution).label.toUpperCase()}]. Recommended procedure calls for balancing zone deployments.`;
-    }
-
-    showBotMessage(reply);
-  }, 750);
-}
-
-// --- Bootstrap Execution Hooks ---
-window.addEventListener('load', () => {
-  renderDashboard();
-});
-window.addEventListener('resize', () => {
-  const history = JSON.parse(localStorage.getItem('neo_city_history') || '[]');
-  drawScoreChart(history);
-});
+/* ── Init ── */
+loadDashboard();
+window.addEventListener('resize', () => { drawScoreChart(JSON.parse(localStorage.getItem('nc_history')||'[]')); });
 </script>
 </body>
 </html>
