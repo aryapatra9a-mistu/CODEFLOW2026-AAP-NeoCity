@@ -860,12 +860,14 @@ function loadDashboard() {
   const history   = historyRaw   ? JSON.parse(historyRaw)   : [];
   const disasters = disasterRaw  ? JSON.parse(disasterRaw)  : [];
 
-  const hasSave = !!gridRaw;
-  const grid    = hasSave ? JSON.parse(gridRaw) : [];
+  let grid = [];
+  try { grid = gridRaw ? JSON.parse(gridRaw) : []; } catch(e) { grid = []; }
+  const placed  = grid.filter(Boolean).length;
+  const hasSave = placed > 0;
 
   /* ── Compute everything from grid ── */
   const computed = hasSave ? computeFromGrid(grid) : null;
-  const placed   = grid.filter(Boolean).length;
+  console.log("[NeoCity Dashboard]", { gridRaw: !!gridRaw, placed, computed, buildings: grid.filter(Boolean) });
 
   /* ── Score breakdown banner ── */
   if (hasSave && computed) {
