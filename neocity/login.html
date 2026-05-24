@@ -608,7 +608,7 @@ btn.disabled=false; btn.innerHTML='▶ CREATE ACCOUNT'; return;
 }
  users.push({name,email,pass:btoa(pass)}); saveUsers(users); setSession({name,email});
  showMsg('register-msg','success','Account created! Welcome to NeoCity…');
-setTimeout(()=>{window.location.href='index.html';},1300);
+setTimeout(()=>{window.location.href='landingpage.html';},1300);
 },1000);
 }
 function handleGuest(){
