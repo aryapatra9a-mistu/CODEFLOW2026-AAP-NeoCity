@@ -741,16 +741,23 @@ function badge(cfg){ return `<span class="perf-badge ${cfg.cls}"><span class="pe
 function closeModal(id) { document.getElementById(id).classList.remove('show'); }
 
 function startNewGame() {
-  const current = JSON.parse(localStorage.getItem('neocity_current'));
-  const history = JSON.parse(localStorage.getItem('neocity_history'));
+  let current = null;
+  try {
+    current = JSON.parse(localStorage.getItem('neocity_current'));
+  } catch(e) { current = null; }
   
-  if (current && current.buildings > 0) {
-    const polPerf = getPerfFromPollution(current.pollution);
+  let history = [];
+  try {
+    history = JSON.parse(localStorage.getItem('neocity_history')) || [];
+  } catch(e) { history = []; }
+  
+  if (current) {
+    const polPerf = getPerfFromPollution(current.pollution || 0);
     history.unshift({
-      score: current.score,
-      pollution: current.pollution,
-      buildings: current.buildings,
-      disasters: current.disasters,
+      score: current.score || 0,
+      pollution: current.pollution || 0,
+      buildings: current.buildings || 0,
+      disasters: current.disasters || 0,
       perf: polPerf.label,
       time: new Date().toTimeString().slice(0,8)
     });
@@ -758,15 +765,15 @@ function startNewGame() {
   }
 
   const freshSession = {
-    score: 150,
-    pollution: 15,
-    happiness: 90,
-    buildings: 1,
+    score: 0,
+    pollution: 0,
+    happiness: 100,
+    buildings: 0,
     disasters: 0,
-    industrial: 10,
-    residential: 20,
-    transport: 15,
-    green: 85,
+    industrial: 0,
+    residential: 0,
+    transport: 0,
+    green: 100,
     disaster_events: []
   };
   localStorage.setItem('neocity_current', JSON.stringify(freshSession));
@@ -776,6 +783,7 @@ function startNewGame() {
 
 function drawScoreChart(history, currentScore) {
   const canvas = document.getElementById('scoreChart');
+  if(!canvas) return;
   const W = canvas.offsetWidth; const H = 200;
   canvas.width = W * window.devicePixelRatio;
   canvas.height = H * window.devicePixelRatio;
@@ -839,7 +847,7 @@ function drawScoreChart(history, currentScore) {
 
 function renderDashboard() {
   const current = JSON.parse(localStorage.getItem('neocity_current'));
-  const history = JSON.parse(localStorage.getItem('neocity_history'));
+  const history = JSON.parse(localStorage.getItem('neocity_history')) || [];
 
   const allScores = history.map(h => h.score);
   if (current) allScores.push(current.score);
