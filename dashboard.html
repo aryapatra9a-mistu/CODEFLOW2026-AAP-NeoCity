@@ -426,7 +426,6 @@ body::before { content:'';position:fixed;inset:0;background:repeating-linear-gra
 <div id="cursor-trail"></div>
 <canvas id="bg-canvas"></canvas>
 
-<!-- New Game Confirm Modal -->
 <div class="modal-overlay" id="new-modal">
 <div class="modal-box">
 <div class="modal-title">🆕 Start New Game?</div>
@@ -438,7 +437,6 @@ body::before { content:'';position:fixed;inset:0;background:repeating-linear-gra
 </div>
 </div>
 
-<!-- NeoBot Modal -->
 <div class="neobot-overlay" id="neobot-overlay" onclick="handleOverlayClick(event)">
 <div class="neobot-modal" id="neobot-modal">
 <div class="nb-head">
@@ -467,7 +465,6 @@ body::before { content:'';position:fixed;inset:0;background:repeating-linear-gra
 </div>
 
 <div class="content">
-<!-- TOPBAR -->
 <div class="topbar">
 <div class="tb-logo">NEO<span>CITY</span> AI</div>
 <nav class="tb-nav">
@@ -480,13 +477,10 @@ body::before { content:'';position:fixed;inset:0;background:repeating-linear-gra
 </div>
 </div>
 
-<!-- DASHBOARD -->
 <div class="dashboard">
-<!-- ── GAME OPTIONS ── -->
 <div>
 <div class="sec-label">// Game Options</div>
 <div class="game-row">
-<!-- NEW GAME -->
 <div class="game-card new-game">
 <span class="gc-icon">🌆</span>
 <div class="gc-title">New Game</div>
@@ -503,7 +497,6 @@ body::before { content:'';position:fixed;inset:0;background:repeating-linear-gra
 </div>
 </div>
 
-<!-- ── LIVE STATS ── -->
 <div>
 <div class="sec-label">// Current Session Stats</div>
 <div class="stats-row">
@@ -537,9 +530,7 @@ body::before { content:'';position:fixed;inset:0;background:repeating-linear-gra
 </div>
 </div>
 
-<!-- ── MAIN CONTENT ROW ── -->
 <div class="content-row">
-<!-- Score History -->
 <div class="history-panel">
 <div class="panel-head">
 <div>
@@ -571,9 +562,7 @@ body::before { content:'';position:fixed;inset:0;background:repeating-linear-gra
 </div>
 </div>
 
-<!-- Right Column -->
 <div class="right-col">
-<!-- Pollution Tracker -->
 <div class="metric-panel">
 <div class="mp-head">
 <div class="mp-title">Pollution Rate Tracker</div>
@@ -617,7 +606,6 @@ body::before { content:'';position:fixed;inset:0;background:repeating-linear-gra
 </div>
 </div>
 
-<!-- Disaster Rate -->
 <div class="disaster-panel">
 <div class="dp-head">
 <div class="dp-title">⚠ Disaster Events</div>
@@ -635,7 +623,6 @@ body::before { content:'';position:fixed;inset:0;background:repeating-linear-gra
 </div>
 </div>
 
-<!-- ── PERFORMANCE ROW ── -->
 <div>
 <div class="sec-label">// Performance Analysis</div>
 <div class="perf-row">
@@ -660,7 +647,6 @@ body::before { content:'';position:fixed;inset:0;background:repeating-linear-gra
 </div>
 </div>
 
-<!-- ── NEOBOT BUTTON ── -->
 <div class="neobot-bar">
 <button class="btn-neobot" onclick="openNeobot()">
 <div class="btn-neobot-pulse"></div>
@@ -668,10 +654,7 @@ body::before { content:'';position:fixed;inset:0;background:repeating-linear-gra
 Get Help from NeoBot
 </button>
 </div>
-</div><!-- /dashboard -->
-</div><!-- /content -->
-
-<script>
+</div></div><script>
 // UI Mouse cursor handlers
 const cursor = document.getElementById('cursor');
 const trail  = document.getElementById('cursor-trail');
@@ -765,7 +748,7 @@ function badge(cfg){ return `<span class="perf-badge ${cfg.cls}"><span class="pe
 
 function closeModal(id) { document.getElementById(id).classList.remove('show'); }
 
-// RECTIFIED START NEW GAME ROUTINE (Fixes freezing issues completely)
+// RECTIFIED START NEW GAME ROUTINE WITH REDIRECT INTEGRATED
 function startNewGame() {
   let current = null;
   try {
@@ -806,9 +789,23 @@ function startNewGame() {
   localStorage.setItem('neocity_current', JSON.stringify(freshSession));
   closeModal('new-modal');
   renderDashboard();
+
+  // ─── REDIRECTION & VIEW SWITCHING ROUTE ENGINE ───
+  const dashboardView = document.getElementById('dashboard-screen') || document.querySelector('.dashboard');
+  const gameView = document.getElementById('game-screen') || document.getElementById('city-builder');
+
+  if (dashboardView && gameView && dashboardView.id === 'dashboard-screen') {
+    // If running in a single-file tabs system
+    dashboardView.style.display = 'none';
+    gameView.style.display = 'block';
+    if (typeof showTab === 'function') { showTab('city-builder'); }
+  } else {
+    // Standard Multi-file fallback path redirecting back to the builder page
+    window.location.href = 'index.html'; 
+  }
 }
 
-// Custom Fallback Line Graph Generator (Safeguarded against rendering exceptions)
+// Custom Fallback Line Graph Generator
 function drawScoreChart(history, currentScore) {
   const canvas = document.getElementById('scoreChart');
   if(!canvas) return;
