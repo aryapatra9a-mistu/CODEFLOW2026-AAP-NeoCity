@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NeoBot — NeoCity AI Advisor</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+      --bg:#050816;
+      --bg2:#080f22;
+      --bg3:#0c1430;
+      --green:#00FFB2;
+      --cyan:#00D1FF;
+      --red:#FF5C5C;
+      --amber:#FFB800;
+      --purple:#7B2FBE;
+      --violet:#a855f7;
+      --white:#E8F4FF;
+      --border:rgba(0,255,178,0.09);
+}
+ html, body { height: 100%; background: var(--bg); color: var(--white); font-family: 'Rajdhani', sans-serif; overflow: hidden; }
+#cursor { position:fixed;width:12px;height:12px;border:2px solid var(--green);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:transform .1s;mix-blend-mode:screen; }
+#cursor-trail { position:fixed;width:28px;height:28px;border:1px solid rgba(0,255,178,.2);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:left .12s ease,top .12s ease; }
+body::before { content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.05) 2px,rgba(0,0,0,.05) 4px);pointer-events:none;z-index:1; }
+#bg-canvas { position:fixed;inset:0;width:100%;height:100%;z-index:0;opacity:.5; }
+.shell { position:relative;z-index:10;height:100vh;display:grid;grid-template-rows:56px 1fr; }
+.topbar { display:flex;align-items:center;justify-content:space-between;padding:0 28px;background:rgba(5,8,22,.97);border-bottom:1px solid var(--border);gap:16px; }
+.tb-logo { font-family:'Orbitron',sans-serif;font-weight:900;font-size:.95rem;letter-spacing:.12em;color:var(--green);text-shadow:0 0 18px rgba(0,255,178,.4); }
+.tb-logo span { color:var(--cyan); }
+.tb-center { display:flex;align-items:center;gap:8px;font-family:'Orbitron',sans-serif;font-size:.65rem;letter-spacing:.2em;color:var(--violet); }
+.tb-bot-dot { width:7px;height:7px;border-radius:50%;background:var(--violet);animation:pulse 1.6s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.3;transform:scale(.5)} }
+.tb-nav { display:flex;gap:4px; }
+.tb-nav a { font-family:'Orbitron',sans-serif;font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;padding:7px 14px;color:rgba(232,244,255,.35);text-decoration:none;border:1px solid transparent;transition:all .2s; }
+.tb-nav a:hover { color:var(--cyan);border-color:rgba(0,209,255,.2); }
+.tb-nav a.active { color:var(--violet);border-color:rgba(168,85,247,.3);background:rgba(168,85,247,.08); }
+.main { display:grid;grid-template-columns:300px 1fr;overflow:hidden; }
+.left-panel { background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden; }
+.bot-identity { padding:24px 20px 18px;border-bottom:1px solid var(--border);flex-shrink:0; }
+.bot-avatar-wrap { display:flex;align-items:center;gap:14px;margin-bottom:14px; }
+.bot-avatar { width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;box-shadow:0 0 20px rgba(123,47,190,.45);animation:avatarGlow 3s ease-in-out infinite; }
+@keyframes avatarGlow { 0%,100%{box-shadow:0 0 20px rgba(123,47,190,.4)} 50%{box-shadow:0 0 32px rgba(0,209,255,.5)} }
+.bot-name { font-family:'Orbitron',sans-serif;font-size:1rem;font-weight:900;color:var(--white); }
+.bot-title { font-size:.75rem;color:rgba(232,244,255,.4);letter-spacing:.06em;margin-top:2px; }
+.bot-status { display:flex;align-items:center;gap:6px;font-family:'Orbitron',sans-serif;font-size:.55rem;letter-spacing:.15em;color:var(--green); }
+.status-dot { width:5px;height:5px;border-radius:50%;background:var(--green);animation:pulse 1.5s infinite; }
+.knowledge-section { padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0; }
+.ks-label { font-family:'Orbitron',sans-serif;font-size:.52rem;letter-spacing:.25em;color:rgba(0,209,255,.5);text-transform:uppercase;margin-bottom:10px; }
+.domain-tags { display:flex;flex-wrap:wrap;gap:5px; }
+.domain-tag { font-family:'Orbitron',sans-serif;font-size:.52rem;letter-spacing:.08em;padding:3px 8px;border:1px solid rgba(0,255,178,.15);color:rgba(0,255,178,.6);background:rgba(0,255,178,.04);cursor:pointer;transition:all .2s; }
+.domain-tag:hover { border-color:rgba(0,255,178,.4);color:var(--green);background:rgba(0,255,178,.08); }
+.mode-section { padding:16px 20px;flex-shrink:0;border-bottom:1px solid var(--border); }
+.mode-label { font-family:'Orbitron',sans-serif;font-size:.52rem;letter-spacing:.25em;color:rgba(0,209,255,.5);text-transform:uppercase;margin-bottom:10px; }
+.mode-btn { width:100%;padding:12px 14px;font-family:'Orbitron',sans-serif;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;background:transparent;border:1px solid rgba(255,255,255,.08);color:rgba(232,244,255,.4);cursor:pointer;transition:all .2s;text-align:left;display:flex;align-items:center;gap:10px;margin-bottom:6px;position:relative;overflow:hidden; }
+.mode-btn::before { content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:transparent;transition:background .2s; }
+.mode-btn:hover { border-color:rgba(0,255,178,.2);color:rgba(232,244,255,.7); }
+.mode-btn.active { border-color:var(--purple);color:var(--violet);background:rgba(123,47,190,.08); }
+.mode-btn.active::before { background:var(--purple); }
+.mode-btn.score-mode.active { border-color:var(--green);color:var(--green);background:rgba(0,255,178,.06); }
+.mode-btn.score-mode.active::before { background:var(--green); }
+.mode-icon { font-size:1.1rem;flex-shrink:0; }
+.mode-info { flex:1; }
+.mode-name { font-size:.65rem; }
+.mode-sub { font-size:.6rem;color:rgba(232,244,255,.3);margin-top:1px;font-family:'Rajdhani',sans-serif;letter-spacing:.04em; }
+.score-panel { flex:1;overflow-y:auto;padding:16px 20px; }
+.score-panel::-webkit-scrollbar { width:2px; }
+.score-panel::-webkit-scrollbar-thumb { background:rgba(0,255,178,.2); }
+.sp-label { font-family:'Orbitron',sans-serif;font-size:.52rem;letter-spacing:.2em;color:rgba(0,209,255,.4);text-transform:uppercase;margin-bottom:10px; }
+.score-row { display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border:1px solid rgba(255,255,255,.04);background:rgba(0,0,0,.15);margin-bottom:5px;transition:background .2s; }
+.score-row:hover { background:rgba(0,255,178,.02); }
+.score-key { font-size:.75rem;letter-spacing:.04em;color:rgba(232,244,255,.5); }
+.score-val { font-family:'Orbitron',sans-serif;font-size:.72rem;font-weight:700; }
+.score-bar-wrap { height:2px;background:rgba(255,255,255,.05);margin-top:4px;overflow:hidden; }
+.score-bar { height:100%;transition:width .8s ease; }
+.chat-area { display:flex;flex-direction:column;overflow:hidden;background:var(--bg); }
+.chat-header { padding:14px 24px;border-bottom:1px solid var(--border);background:rgba(8,15,34,.8);flex-shrink:0;display:flex;align-items:center;justify-content:space-between; }
+.ch-mode-display { display:flex;align-items:center;gap:10px; }
+.ch-mode-tag { font-family:'Orbitron',sans-serif;font-size:.58rem;letter-spacing:.15em;padding:4px 10px;border:1px solid rgba(123,47,190,.35);color:var(--violet);background:rgba(123,47,190,.08);text-transform:uppercase; }
+.ch-mode-tag.score { border-color:rgba(0,255,178,.35);color:var(--green);background:rgba(0,255,178,.06); }
+.ch-hint { font-size:.78rem;letter-spacing:.04em;color:rgba(232,244,255,.3); }
+.ch-actions { display:flex;gap:6px; }
+.ch-btn { font-family:'Orbitron',sans-serif;font-size:.55rem;letter-spacing:.1em;padding:5px 10px;background:transparent;border:1px solid rgba(255,255,255,.08);color:rgba(232,244,255,.3);cursor:pointer;transition:all .2s;text-transform:uppercase; }
+.ch-btn:hover { color:var(--red);border-color:rgba(255,92,92,.25); }
+.messages { flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:14px; }
+.messages::-webkit-scrollbar { width:3px; }
+.messages::-webkit-scrollbar-thumb { background:rgba(123,47,190,.3);border-radius:2px; }
+.msg { display:flex;gap:10px;animation:msgIn .3s ease; }
+@keyframes msgIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:none} }
+.msg.user { flex-direction:row-reverse; }
+.msg-avatar { width:32px;height:32px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.85rem;margin-top:2px; }
+.msg.bot .msg-avatar { background:linear-gradient(135deg,var(--purple),var(--cyan));box-shadow:0 0 10px rgba(123,47,190,.3); }
+.msg.user .msg-avatar { background:rgba(0,209,255,.15);border:1px solid rgba(0,209,255,.25);font-size:.72rem; }
+.msg-content { max-width:76%;display:flex;flex-direction:column;gap:4px; }
+.msg.user .msg-content { align-items:flex-end; }
+.bubble { padding:11px 15px;font-size:.88rem;line-height:1.65;letter-spacing:.03em;border-radius:2px;position:relative; }
+.msg.bot .bubble { background:rgba(123,47,190,.12);border:1px solid rgba(123,47,190,.22);color:var(--white);border-radius:0 8px 8px 8px; }
+.msg.user .bubble { background:rgba(0,209,255,.08);border:1px solid rgba(0,209,255,.2);color:var(--white);border-radius:8px 0 8px 8px;text-align:right; }
+.msg-time { font-size:.62rem;letter-spacing:.06em;color:rgba(232,244,255,.2); }
+.sdg-cite { display:inline-block;font-family:'Orbitron',sans-serif;font-size:.52rem;letter-spacing:.08em;padding:2px 6px;border:1px solid rgba(0,209,255,.3);color:var(--cyan);background:rgba(0,209,255,.06);margin:0 2px;vertical-align:middle; }
+.typing-indicator { display:flex;gap:4px;align-items:center;padding:6px 0; }
+.typing-indicator span { width:7px;height:7px;border-radius:50%;background:var(--violet);animation:typeDot 1.3s infinite; }
+.typing-indicator span:nth-child(2){animation-delay:.2s}
+.typing-indicator span:nth-child(3){animation-delay:.4s}
+@keyframes typeDot{0%,80%,100%{transform:scale(.5);opacity:.3}40%{transform:scale(1);opacity:1}}
+.quick-chips { padding:0 24px 10px;display:flex;flex-wrap:wrap;gap:6px; }
+.chip { font-family:'Orbitron',sans-serif;font-size:.55rem;letter-spacing:.1em;padding:6px 12px;border:1px solid rgba(123,47,190,.3);background:rgba(123,47,190,.06);color:var(--violet);cursor:pointer;transition:all .2s;text-transform:uppercase; }
+.chip:hover { background:rgba(123,47,190,.16);border-color:rgba(123,47,190,.55);color:#d8b4fe; }
+.chip.score-chip { border-color:rgba(0,255,178,.25);background:rgba(0,255,178,.04);color:var(--green); }
+.chip.score-chip:hover { background:rgba(0,255,178,.1);border-color:rgba(0,255,178,.5); }
+.input-bar { padding:14px 24px 18px;border-top:1px solid var(--border);background:rgba(8,15,34,.9);flex-shrink:0;display:flex;gap:8px;align-items:flex-end; }
+.input-wrap { flex:1;position:relative; }
+textarea#chatInput { width:100%;min-height:44px;max-height:120px;padding:11px 14px;resize:none;overflow:hidden;background:rgba(123,47,190,.07);border:1px solid rgba(123,47,190,.25);color:var(--white);font-family:'Rajdhani',sans-serif;font-size:.92rem;letter-spacing:.04em;outline:none;transition:border-color .2s;border-radius:0; }
+textarea#chatInput::placeholder { color:rgba(232,244,255,.2); }
+textarea#chatInput:focus { border-color:rgba(123,47,190,.6); }
+.send-btn { padding:11px 22px;height:44px;background:linear-gradient(135deg,var(--purple),#4a1a8a);border:none;color:#fff;font-family:'Orbitron',sans-serif;font-size:.65rem;letter-spacing:.15em;cursor:pointer;transition:box-shadow .2s,transform .15s;clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%);text-transform:uppercase;flex-shrink:0; }
+.send-btn:hover { box-shadow:0 0 20px rgba(123,47,190,.6);transform:translateY(-1px); }
+.char-count { font-size:.62rem;color:rgba(232,244,255,.2);letter-spacing:.06em;margin-top:4px;font-family:'Orbitron',sans-serif; }
+.welcome-state { flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;text-align:center;gap:18px; }
+.ws-icon { font-size:3.5rem;animation:avatarGlow 3s ease-in-out infinite; }
+.ws-title { font-family:'Orbitron',sans-serif;font-size:1.4rem;font-weight:900;color:var(--white);letter-spacing:.05em; }
+.ws-title span { color:var(--violet); }
+.ws-desc { font-size:.9rem;color:rgba(232,244,255,.4);line-height:1.7;max-width:440px; }
+.ws-grid { display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:440px;width:100%;margin-top:8px; }
+.ws-card { padding:14px 16px;border:1px solid rgba(123,47,190,.2);background:rgba(123,47,190,.04);cursor:pointer;transition:all .2s;text-align:left; }
+.ws-card:hover { border-color:rgba(123,47,190,.45);background:rgba(123,47,190,.1); }
+.ws-card-icon { font-size:1.3rem;margin-bottom:7px; }
+.ws-card-title { font-family:'Orbitron',sans-serif;font-size:.62rem;letter-spacing:.1em;color:var(--violet);text-transform:uppercase;margin-bottom:4px; }
+.ws-card-desc { font-size:.75rem;color:rgba(232,244,255,.4);line-height:1.5; }
+@media(max-width:768px){
+.main { grid-template-columns:1fr; }
+.left-panel { display:none; }
+.topbar { padding:0 14px; }
+.tb-nav a { padding:6px 8px;font-size:.52rem; }
+}
+</style>
+</head>
+<body>
+<div id="cursor"></div>
+<div id="cursor-trail"></div>
+<canvas id="bg-canvas"></canvas>
+<div class="shell">
+<div class="topbar">
+<div class="tb-logo">NEO<span>CITY</span> AI</div>
+<div class="tb-center">
+<div class="tb-bot-dot"></div>
+NEOBOT · AI CITY ADVISOR
+</div>
+<nav class="tb-nav">
+<a href="index.html">Home</a>
+<a href="city.html">City Builder</a>
+<a href="dashboard.html">Dashboard</a>
+<a href="neobot.html" class="active">NeoBot 🤖</a>
+</nav>
+</div>
+<div class="main">
+<div class="left-panel">
+<div class="bot-identity">
+<div class="bot-avatar-wrap">
+<div class="bot-avatar">🤖</div>
+<div>
+<div class="bot-name">NeoBot</div>
+<div class="bot-title">Sustainable Urban Intelligence</div>
+</div>
+</div>
+<div class="bot-status"><div class="status-dot"></div>ONLINE · KNOWLEDGE v2.0</div>
+</div>
+<div class="knowledge-section">
+<div class="ks-label">// Knowledge Domains</div>
+<div class="domain-tags">
+<span class="domain-tag" onclick="askDomain('SDG Goals')">SDG Goals</span>
+<span class="domain-tag" onclick="askDomain('Climate Change')">Climate Change</span>
+<span class="domain-tag" onclick="askDomain('Solar Energy')">Solar Energy</span>
+ <span class="domain-tag" onclick="askDomain('Urban Forests')">Urban Forests</span>
+<span class="domain-tag" onclick="askDomain('Carbon Emissions')">Carbon Emissions</span>
+<span class="domain-tag" onclick="askDomain('Green Transport')">Green Transport</span>
+<span class="domain-tag" onclick="askDomain('Circular Economy')">Circular Economy</span>
+<span class="domain-tag" onclick="askDomain('Smart Cities')">Smart Cities</span>
+<span class="domain-tag" onclick="askDomain('Water Conservation')">Water Conservation</span>
+<span class="domain-tag" onclick="askDomain('Air Pollution')">Air Pollution</span>
+<span class="domain-tag" onclick="askDomain('Biodiversity')">Biodiversity</span>
+<span class="domain-tag" onclick="askDomain('Renewable Energy')">Renewables</span>
+</div>
+</div>
+<div class="mode-section">
+<div class="mode-label">// Mode</div>
+<button class="mode-btn score-mode active" id="scoreBtn" onclick="setMode('score')">
+<span class="mode-icon">📊</span>
+<div class="mode-info">
+<div class="mode-name">Score &amp; Pollution Helper</div>
+<div class="mode-sub">Personalised city advice from your data</div>
+</div>
+</button>
+<button class="mode-btn" id="qaBtn" onclick="setMode('qa')">
+<span class="mode-icon">🌍</span>
+<div class="mode-info">
+<div class="mode-name">Ask Anything</div>
+<div class="mode-sub">SDG, climate &amp; sustainability Q&amp;A</div>
+</div>
+</button>
+</div>
+<div class="score-panel">
+<div class="sp-label">// City Snapshot</div>
+<div id="citySnapshot"></div>
+</div>
+</div>
+<div class="chat-area">
+<div class="chat-header">
+<div class="ch-mode-display">
+<div class="ch-mode-tag score" id="modeTag">SCORE HELPER</div>
+<div class="ch-hint" id="modeHint">Personalised advice based on your city's data</div>
+</div>
+<div class="ch-actions">
+<button class="ch-btn" onclick="clearChat()">✕ Clear Chat</button>
+</div>
+</div>
+<div class="messages" id="messages"></div>
+<div class="quick-chips" id="quickChips"></div>
+<div class="input-bar">
+<div class="input-wrap">
+<textarea id="chatInput" rows="1" placeholder="Ask NeoBot anything…" oninput="autoResize(this);updateCount(this)" onkeydown="handleKey(event)"></textarea>
+<div class="char-count" id="charCount">0 / 400</div>
+</div>
+<button class="send-btn" onclick="sendMessage()">SEND ▶</button>
+</div>
+</div>
+</div>
+</div>
+<script>
+let currentMode = 'score';
+let chatHistory = [];
+let isTyping = false;
+function getCityData() {
+  const gridRaw = localStorage.getItem('nc_grid');
+  const score = parseInt(localStorage.getItem('nc_city_score') || '0');
+  const historyRaw = localStorage.getItem('nc_history');
+  const disastersRaw = localStorage.getItem('nc_disasters');
+  const history = historyRaw ? JSON.parse(historyRaw) : [];
+  const disasters = disastersRaw ? JSON.parse(disastersRaw) : [];
+  let pol=18, hap=62, energy=50, water=72, sus=45, placed=0;
+  const counts = {solar:0,forest:0,bus:0,factory:0,recycle:0,home:0};
+  if (gridRaw) {
+    const grid = JSON.parse(gridRaw);
+    const BMAP = {
+      solar:{p:-8,h:+6,e:+15,w:0,s:+10}, forest:{p:-14,h:+9,e:-1,w:+6,s:+12},
+      bus:{p:-9,h:+11,e:-4,w:0,s:+8},    factory:{p:+20,h:-6,e:-12,w:-9,s:-14},
+      recycle:{p:-11,h:+6,e:-2,w:+4,s:+9}, home:{p:+4,h:+13,e:-5,w:-4,s:+3}
+};
+grid.filter(Boolean).forEach(id => {
+      placed++;
+      if (counts[id] !== undefined) counts[id]++;
+      const b = BMAP[id]; if (!b) return;
+      pol+=b.p; hap+=b.h; energy+=b.e; water+=b.w; sus+=b.s;
+});
+    pol=Math.max(0,Math.min(100,pol)); 
+    hap=Math.max(0,Math.min(100,hap));
+    energy=Math.max(0,Math.min(100,energy)); 
+    water=Math.max(0,Math.min(100,water));
+    sus=Math.max(0,Math.min(100,sus));
+}
+  const trend = history.length >= 2 ? history[history.length-1].score - history[history.length-2].score : 0;
+  return { score, pol, hap, energy, water, sus, placed, counts, history, disasters, trend };
+}
+function renderCitySnapshot() {
+const d = getCityData();
+const metrics = [
+    { label:'City Score', val: d.score > 0 ? d.score : '—', color:'#00FFB2', pct: Math.min(100,(d.score/200)*100) },
+    { label:'Pollution', val: Math.round(d.pol)+'%', color: d.pol>65?'#FF5C5C':d.pol>40?'#FFB800':'#00FFB2', pct:d.pol },
+    { label:'Happiness', val: Math.round(d.hap)+'%', color:'#FFB800', pct:d.hap },
+    { label:'Sustainability', val: Math.round(d.sus)+'%', color:'#00D1FF', pct:d.sus },
+    { label:'Water', val: Math.round(d.water)+'%', color:'#7B2FBE', pct:d.water },
+    { label:'Buildings', val: d.placed, color:'#E8F4FF', pct:(d.placed/96)*100 },
+];
+document.getElementById('citySnapshot').innerHTML = metrics.map(m => `
+<div class="score-row">
+<div style="flex:1">
+<div class="score-key">${m.label}</div>
+<div class="score-bar-wrap"><div class="score-bar" style="width:${Math.round(m.pct)}%;background:${m.color}"></div></div>
+</div>
+<div class="score-val" style="color:${m.color};margin-left:10px">${m.val}</div>
+</div>`).join('');
+}
+function setMode(mode) {
+  currentMode = mode;
+  document.getElementById('scoreBtn').classList.toggle('active', mode==='score');
+  document.getElementById('qaBtn').classList.toggle('active', mode==='qa');
+  const tag = document.getElementById('modeTag');
+  const hint = document.getElementById('modeHint');
+  if (mode === 'score') {
+    tag.textContent = 'SCORE HELPER'; tag.className = 'ch-mode-tag score';
+    hint.textContent = "Personalised advice based on your city's data";
+} 
+else {
+    tag.textContent = 'ASK ANYTHING'; 
+    tag.className = 'ch-mode-tag';
+    hint.textContent = 'SDG goals, climate science & sustainability knowledge';
+}
+showWelcome(); 
+renderQuickChips();
+}
+function renderQuickChips() {
+  const container = document.getElementById('quickChips');
+  if (currentMode === 'score') {
+    const chips = ['How do I reduce my pollution?','How can I boost my city score?','What buildings should I add next?','Analyse my city performance','How do I prevent disasters?','Explain my sustainability score'];
+    container.innerHTML = chips.map(c => `<button class="chip score-chip" onclick="quickSend('${c}')">${c}</button>`).join('');
+}
+else {
+    const chips = ['What are the 17 SDGs?','How do cities contribute to climate change?','What is carbon neutrality?','How does solar energy work?','What is the Paris Agreement?','Explain the circular economy','What is SDG 11?','How do urban forests help?'];
+    container.innerHTML = chips.map(c => `<button class="chip" onclick="quickSend('${c}')">${c}</button>`).join('');
+}
+}
+function showWelcome() {
+chatHistory = [];
+const msgs = document.getElementById('messages');
+if (currentMode === 'score') {
+    const d = getCityData();
+    const hasGame = d.score > 0 || d.placed > 0;
+    msgs.innerHTML = `<div class="welcome-state">
+<div class="ws-icon">📊</div>
+<div class="ws-title">Score <span>&amp;</span> Pollution Helper</div>
+<div class="ws-desc">${hasGame ? `I can see your city has <strong style="color:var(--green)">${d.placed} buildings</strong> and a score of <strong style="color:var(--green)">${d.score}</strong>. Ask me how to improve!` : `Start a city first to get personalised advice, or ask me general building strategy questions.`}</div>
+<div class="ws-grid">
+<div class="ws-card" onclick="quickSend('Analyse my city and give me your top 3 tips to improve my score')"><div class="ws-card-icon">🔍</div><div class="ws-card-title">Analyse City</div><div class="ws-card-desc">Full breakdown of your current performance</div></div>
+<div class="ws-card" onclick="quickSend('What is the fastest way to reduce my pollution level right now?')"><div class="ws-card-icon">🌿</div><div class="ws-card-title">Cut Pollution</div><div class="ws-card-desc">Targeted advice to reduce your pollution index</div></div>
+<div class="ws-card" onclick="quickSend('Which buildings give the best score boost?')"><div class="ws-card-icon">🏗️</div><div class="ws-card-title">Best Buildings</div><div class="ws-card-desc">Score-per-tile rankings and placement tips</div></div>
+<div class="ws-card" onclick="quickSend('How close am I to achieving carbon neutrality?')"><div class="ws-card-icon">🌍</div><div class="ws-card-title">Carbon Path</div><div class="ws-card-desc">Your projected trajectory to zero emissions</div></div>
+</div></div>`;
+} 
+else {
+msgs.innerHTML = `<div class="welcome-state">
+<div class="ws-icon">🌍</div>
+<div class="ws-title">Ask <span>Anything</span></div>
+<div class="ws-desc">I have deep knowledge of all 17 UN Sustainable Development Goals, climate science, environmental policy, renewable energy, and sustainable urban planning.</div>
+<div class="ws-grid">
+<div class="ws-card" onclick="quickSend('Explain all 17 UN Sustainable Development Goals')"><div class="ws-card-icon">🎯</div><div class="ws-card-title">All 17 SDGs</div><div class="ws-card-desc">Full overview of the UN 2030 Agenda</div></div>
+<div class="ws-card" onclick="quickSend('How do cities drive climate change and what can be done?')"><div class="ws-card-icon">🏙️</div><div class="ws-card-title">Cities & Climate</div><div class="ws-card-desc">Urban emissions, heat islands & solutions</div></div>
+<div class="ws-card" onclick="quickSend('What is the Paris Agreement and its targets?')"><div class="ws-card-icon">📋</div><div class="ws-card-title">Paris Agreement</div><div class="ws-card-desc">1.5°C targets and global commitments</div></div>
+<div class="ws-card" onclick="quickSend('How does renewable energy help fight climate change?')"><div class="ws-card-icon">⚡</div><div class="ws-card-title">Renewables</div><div class="ws-card-desc">Solar, wind, and clean energy explained</div></div>
+</div></div>`;
+}
+}
+function getResponse(msg) {
+const m = msg.toLowerCase();
+const d = getCityData();
+if (currentMode === 'score') {
+    if (m.includes('analys') || m.includes('breakdown') || m.includes('performance') || m.includes('overview')) {
+      const perf = d.score >= 120 ? 'Excellent' : d.score >= 80 ? 'Good' : d.score >= 40 ? 'Moderate' : d.placed === 0 ? 'Not started' : 'Developing';
+      const pollStatus = d.pol < 25 ? 'excellent' : d.pol < 45 ? 'moderate' : d.pol < 70 ? 'high' : 'critical';
+      const top3 = getTop3Tips(d);
+      return `<strong style="color:var(--green)">// CITY ANALYSIS REPORT</strong><br><br>
+<strong>Overall Performance:</strong> <span class="sdg-cite">${perf.toUpperCase()}</span><br><br>
+📊 <strong>Score:</strong> ${d.score > 0 ? d.score + ' pts' : 'No active game'}<br>
+🌫️ <strong>Pollution:</strong> ${Math.round(d.pol)}% — <span style="color:${d.pol<30?'var(--green)':d.pol<60?'var(--amber)':'var(--red)'}">${pollStatus}</span><br>
+😊 <strong>Happiness:</strong> ${Math.round(d.hap)}%<br>
+⚡ <strong>Energy:</strong> ${Math.round(d.energy)}%<br>
+💧 <strong>Water:</strong> ${Math.round(d.water)}%<br>
+♻️ <strong>Sustainability:</strong> ${Math.round(d.sus)}%<br>
+🏗️ <strong>Buildings:</strong> ${d.placed} placed<br>
+${d.trend !== 0 ? `📈 <strong>Score Trend:</strong> ${d.trend > 0 ? '+'+d.trend+' ↑ improving' : d.trend+' ↓ declining'}<br>` : ''}
+<br><strong style="color:var(--cyan)">// TOP 3 RECOMMENDATIONS</strong><br>${top3.map((t,i) => `<br><strong>${i+1}.</strong> ${t}`).join('')}`;
+}
+if (m.includes('pollution') || m.includes('pollut') || m.includes('clean air') || m.includes('reduce pollution') || m.includes('cut pollution')) {
+      const polTips = getPollutionTips(d);
+      return `<strong style="color:var(--green)">// POLLUTION REDUCTION STRATEGY</strong><br><br>
+Your current pollution index is <span style="color:${d.pol<30?'var(--green)':d.pol<60?'var(--amber)':'var(--red)'}"><strong>${Math.round(d.pol)}%</strong></span>.<br><br>
+${polTips.join('<br><br>')}<br><br>
+🌍 Real-world link: Urban forests absorb over <strong>150 tonnes of CO₂ per hectare per year</strong> — aligned with <span class="sdg-cite">SDG 13</span>.`;
+}
+if (m.includes('score') || m.includes('boost') || m.includes('increase') || m.includes('points') || m.includes('best building')) {
+      return `<strong style="color:var(--green)">// SCORE MAXIMISATION GUIDE</strong><br><br>
+Your current score is <strong style="color:var(--green)">${d.score}</strong>. Here's how to climb higher:<br><br>
+🏆 <strong>Highest ROI Buildings:</strong><br>
+• 🌳 <strong>Forest</strong> — Biggest pollution cut (−14) + sustainability (+12)<br>
+• ☀️ <strong>Solar Plant</strong> — Clean energy +15, sustainability +10<br>
+• ♻️ <strong>Recycling Center</strong> — Cuts pollution −11, water bonus +4<br>
+• 🚌 <strong>Electric Bus</strong> — Happiness king at +11<br><br>
+📊 <strong>Score Formula:</strong> Sustainability (40%) + Happiness (30%) + Clean Air (30%) × buildings placed.<br><br>
+${d.counts.factory > 0 ? `⚠️ You have <strong>${d.counts.factory} factories</strong>. Each needs at least 1 Forest + 1 Recycling Center to offset.` : '✅ No factories — great start!'}<br><br>
+Target: <strong>${d.score + 30}+ points</strong> by adding ${Math.max(2,4-d.counts.forest)} more Forests and ${Math.max(2,3-d.counts.solar)} Solar Plants. <span class="sdg-cite">SDG 7</span> <span class="sdg-cite">SDG 11</span>`;
+}
+if (m.includes('building') || m.includes('place') || m.includes('construct') || m.includes('next') || m.includes('what should i')) {
+return `<strong style="color:var(--green)">// BUILDING PLACEMENT INTELLIGENCE</strong><br><br>
+Based on your city (${d.placed} buildings placed):<br><br>
+${getBuildingRecommendation(d)}<br><br>
+<strong style="color:var(--cyan)">// PLACEMENT STRATEGY</strong><br>
+• Place green buildings first to establish your baseline<br>
+• Never add a Factory without 1 Forest + 1 Recycling Center<br>
+• Electric Buses amplify happiness of surrounding Smart Homes<br>
+• Aim for a 3:1 ratio of green-to-industrial buildings<br><br>
+Aligned with <span class="sdg-cite">SDG 9</span> and <span class="sdg-cite">SDG 11</span>.`;
+}
+if (m.includes('disaster') || m.includes('prevent') || m.includes('crisis') || m.includes('flood') || m.includes('heatwave')) {
+ return `<strong style="color:var(--red)">// DISASTER PREVENTION PROTOCOL</strong><br><br>
+${d.disasters.length > 0 ? `⚠️ Your city has recorded <strong style="color:var(--red)">${d.disasters.length} disaster events</strong>.` : '✅ No disasters yet — maintain this!'}<br><br>
+<strong>Key Thresholds:</strong><br>
+• 🌫️ <strong>Pollution &gt; 70%</strong> → Air Crisis. Fix: Add 2+ Forests immediately<br>
+• 💧 <strong>Water &lt; 25%</strong> → Water Shortage. Fix: Add Recycling Centers<br>
+• 😤 <strong>Happiness &lt; 30%</strong> → Civil Unrest. Fix: Electric Buses + Smart Homes<br><br>
+<strong>Your Vulnerable Metrics:</strong><br>
+${d.pol > 65 ? '🔴 Pollution CRITICAL — add Forests urgently<br>' : ''}${d.water < 35 ? '🔴 Water LOW — add Recycling Centers<br>' : ''}${d.hap < 40 ? '🔴 Happiness LOW — add Electric Buses<br>' : ''}${d.pol <= 65 && d.water >= 35 && d.hap >= 40 ? '🟢 All metrics within safe zones.' : ''}<br><br>
+Cities with poor green infrastructure face <strong>Urban Heat Island</strong> effects up to <strong>10°C warmer</strong> than surrounding areas. <span class="sdg-cite">SDG 13</span>`;
+}
+if (m.includes('carbon') || m.includes('neutral') || m.includes('net zero') || m.includes('trajectory')) {
+      const yearsToNeutral = d.pol < 20 && d.sus > 70 ? 8 : d.pol < 40 ? 18 : d.pol < 60 ? 28 : 40;
+      return `<strong style="color:var(--cyan)">// CARBON NEUTRALITY PROJECTION</strong><br><br>
+NeoCity is projected to reach carbon neutrality in approximately <strong style="color:var(--green)">${yearsToNeutral} years</strong>.<br><br>
+📉 <strong>Current Status:</strong><br>
+• Carbon output index: ${Math.round(d.pol * 0.9)}%<br>
+• Green offset capacity: ${Math.round((d.counts.forest * 14 + d.counts.solar * 8 + d.counts.recycle * 11) / Math.max(1, d.placed) * 100)}%<br>
+• Net trend: ${d.sus > 50 ? '↓ Improving' : '→ Stagnant'}<br><br>
+<strong>To Reach Carbon Neutral Faster:</strong><br>
+• Double your forest cover<br>
+• Replace factories with Recycling Centers<br>
+• Add ${Math.max(3,5-d.counts.solar)} more Solar Plants<br><br>
+Aligned with the <strong>Paris Agreement's</strong> 1.5°C target and <span class="sdg-cite">SDG 13</span>.`;
+}
+if (m.includes('sustainab') || m.includes('rating')) {
+      return `<strong style="color:var(--cyan)">// SUSTAINABILITY ANALYSIS</strong><br><br>
+Your Sustainability Score: <strong style="color:var(--cyan)">${Math.round(d.sus)}%</strong><br><br>
+${d.sus >= 70 ? '🏆 <strong>Excellent!</strong> Your city is a model of sustainable development.' : d.sus >= 50 ? '📈 <strong>Good Progress.</strong> You\'re on the right track.' : '⚠️ <strong>Needs Work.</strong> Sustainability below optimal.'}<br><br>
+<strong>Drivers in your City:</strong><br>
+• 🌳 Forests: ${d.counts.forest} × +12 = <strong style="color:var(--green)">+${d.counts.forest*12}</strong><br>
+• ☀️ Solar: ${d.counts.solar} × +10 = <strong style="color:var(--green)">+${d.counts.solar*10}</strong><br>
+• ♻️ Recycling: ${d.counts.recycle} × +9 = <strong style="color:var(--green)">+${d.counts.recycle*9}</strong><br>
+• 🏭 Factories: ${d.counts.factory} × −14 = <strong style="color:var(--red)">${d.counts.factory*-14}</strong><br><br>
+<span class="sdg-cite">SDG 11</span> targets call for cities to halve per-capita environmental impact by 2030. You need above <strong>75%</strong> to be on track.`;
+}
+}
+
+if (m.includes('17 sdg') || m.includes('all sdg') || (m.includes('sdg') && m.includes('goal')) || m.includes('explain sdg')) {
+return `<strong style="color:var(--cyan)">// UN SUSTAINABLE DEVELOPMENT GOALS (2030 AGENDA)</strong><br><br>
+<span class="sdg-cite">SDG 1</span> <strong>No Poverty</strong> — End poverty in all forms<br>
+<span class="sdg-cite">SDG 2</span> <strong>Zero Hunger</strong> — Sustainable food systems<br>
+<span class="sdg-cite">SDG 3</span> <strong>Good Health</strong> — Well-being for all<br>
+<span class="sdg-cite">SDG 4</span> <strong>Quality Education</strong> — Inclusive lifelong learning<br>
+<span class="sdg-cite">SDG 5</span> <strong>Gender Equality</strong> — Empower all women and girls<br>
+<span class="sdg-cite">SDG 6</span> <strong>Clean Water</strong> — Sustainable water and sanitation<br>
+<span class="sdg-cite">SDG 7</span> <strong>Clean Energy</strong> — Affordable, reliable, modern energy<br>
+<span class="sdg-cite">SDG 8</span> <strong>Decent Work</strong> — Inclusive economic growth<br>
+<span class="sdg-cite">SDG 9</span> <strong>Industry &amp; Innovation</strong> — Resilient infrastructure<br>
+<span class="sdg-cite">SDG 10</span> <strong>Reduced Inequalities</strong> — Within and among countries<br>
+<span class="sdg-cite">SDG 11</span> <strong>Sustainable Cities</strong> — Safe, resilient, inclusive<br>
+<span class="sdg-cite">SDG 12</span> <strong>Responsible Consumption</strong> — Sustainable production<br>
+<span class="sdg-cite">SDG 13</span> <strong>Climate Action</strong> — Combat climate change urgently<br>
+<span class="sdg-cite">SDG 14</span> <strong>Life Below Water</strong> — Conserve oceans<br>
+<span class="sdg-cite">SDG 15</span> <strong>Life on Land</strong> — Halt biodiversity loss<br>
+<span class="sdg-cite">SDG 16</span> <strong>Peace &amp; Justice</strong> — Strong institutions<br>
+<span class="sdg-cite">SDG 17</span> <strong>Partnerships</strong> — Global implementation<br><br>
+NeoCity directly targets <span class="sdg-cite">SDG 7</span> <span class="sdg-cite">SDG 9</span> <span class="sdg-cite">SDG 11</span> <span class="sdg-cite">SDG 13</span>.`;
+}
+if (m.includes('sdg 11') || m.includes('sdg11') || m.includes('sustainable cit')) {
+return `<strong style="color:var(--cyan)">// SDG 11 · SUSTAINABLE CITIES &amp; COMMUNITIES</strong><br><br>
+<strong>Goal:</strong> Make cities inclusive, safe, resilient and sustainable by 2030.<br><br>
+<strong>Key Targets:</strong><br>
+• Safe and affordable housing for all<br>
+• Accessible and sustainable transport systems<br>
+• Inclusive urbanisation and participatory planning<br>
+• Resilience to climate-related disasters<br>
+• Universal access to green public spaces<br><br>
+<strong>Why It Matters:</strong><br>
+Over <strong>4.4 billion people</strong> — 55% of humanity — live in cities. By 2050 this rises to <strong>68%</strong>. Cities consume <strong>78% of global energy</strong> and produce <strong>60%+ of greenhouse gases</strong>.<br><br>
+Every Forest, Solar Plant, and Electric Bus you place in NeoCity directly contributes to SDG 11 outcomes.`;
+}
+if (m.includes('sdg 7') || m.includes('sdg7') || m.includes('clean energy') || m.includes('affordable energy')) {
+return `<strong style="color:var(--amber)">// SDG 7 · AFFORDABLE &amp; CLEAN ENERGY</strong><br><br>
+<strong>Goal:</strong> Ensure access to affordable, reliable, sustainable and modern energy for all by 2030.<br><br>
+<strong>Current Reality:</strong><br>
+• ~<strong>733 million people</strong> still lack access to electricity<br>
+• Renewables accounted for <strong>28.2%</strong> of global electricity in 2022<br>
+• Solar panel costs have fallen <strong>89%</strong> since 2010<br>
+• Energy efficiency could deliver <strong>40% of CO₂ reductions</strong> needed by 2030<br><br>
+<strong>Solar Fact:</strong> One hour of sunlight on Earth's surface contains more energy than humanity uses in an entire year. <span class="sdg-cite">SDG 7</span> <span class="sdg-cite">SDG 13</span>`;
+}
+if (m.includes('sdg 13') || m.includes('sdg13') || m.includes('climate action') || m.includes('paris') || m.includes('1.5') || m.includes('global warming')) {
+return `<strong style="color:var(--green)">// SDG 13 · CLIMATE ACTION &amp; THE PARIS AGREEMENT</strong><br><br>
+<strong>SDG 13:</strong> Take urgent action to combat climate change and its impacts.<br><br>
+<strong>The Paris Agreement (2015):</strong><br>
+Signed by <strong>196 parties</strong>, the central aim is to limit global temperature rise to <strong>well below 2°C</strong>, with efforts to limit to <strong>1.5°C</strong> above pre-industrial levels.<br><br>
+<strong>Why 1.5°C Matters:</strong><br>
+• At 2°C: coral reefs virtually disappear, sea level rise doubles<br>
+• At 1.5°C: we preserve 10–30% of coral reefs<br>
+• Each 0.1°C of additional warming causes irreversible damage<br><br>
+<strong>Current Status:</strong><br>
+• Global temperature already <strong>~1.2°C above pre-industrial levels</strong><br>
+• 2023 was the hottest year ever recorded<br>
+• Without action: on track for <strong>2.7–3.1°C</strong> by 2100<br><br>
+Cities must reach net-zero by <strong>2050</strong> and halve emissions by 2030. <span class="sdg-cite">SDG 13</span>`;
+}
+if (m.includes('climate change') || m.includes('greenhouse') || m.includes('co2') || m.includes('carbon emission')) {
+return `<strong style="color:var(--cyan)">// CLIMATE CHANGE: THE FUNDAMENTALS</strong><br><br>
+<strong>What is it?</strong><br>
+Long-term shifts in global temperatures driven primarily by human activities — mainly burning fossil fuels — since the 1800s.<br><br>
+<strong>The Numbers:</strong><br>
+• CO₂ levels have risen from <strong>280 ppm → 422 ppm</strong> (2024)<br>
+• The last time CO₂ was this high was <strong>3 million years ago</strong><br>
+• Cities cover just <strong>3%</strong> of land but produce <strong>70%+ of global CO₂</strong><br>
+• Buildings account for <strong>40%</strong> of energy use globally<br>
+• Transport produces <strong>24%</strong> of global CO₂ emissions<br><br>
+<strong>Key Consequences:</strong><br>
+• More frequent extreme weather events<br>
+• Rising sea levels threatening coastal cities<br>
+• Urban Heat Island effects making cities 1–7°C hotter<br>
+• Displacement of millions of climate refugees<br><br>
+<span class="sdg-cite">SDG 13</span> <span class="sdg-cite">SDG 11</span>`;
+}
+if (m.includes('solar') || m.includes('photovoltaic') || m.includes('pv')) {
+return `<strong style="color:var(--amber)">// SOLAR ENERGY: HOW IT WORKS</strong><br><br>
+<strong>The Science:</strong><br>
+Photovoltaic (PV) cells convert sunlight to electricity via the photoelectric effect. Photons knock electrons loose in silicon cells, generating DC electricity, converted to AC by an inverter.<br><br>
+<strong>Global Impact:</strong><br>
+• Solar is now the <strong>cheapest electricity source in history</strong><br>
+• 1 kW of solar saves ~<strong>1.5 tonnes of CO₂ per year</strong> vs coal<br>
+• Solar capacity doubled globally between 2020–2022<br>
+• Costs have fallen <strong>89%</strong> since 2010<br><br>
+<strong>Urban Solar Uses:</strong><br>
+• Rooftop PV on homes and businesses<br>
+• Building-integrated PV (solar windows, facades)<br>
+• Solar-powered EV charging<br>
+• Community solar farms on brownfield land<br><br>
+In NeoCity, each Solar Plant cuts pollution by 8% and adds +15 energy efficiency. <span class="sdg-cite">SDG 7</span> <span class="sdg-cite">SDG 13</span>`;
+}
+if (m.includes('forest') || m.includes('tree') || m.includes('urban green') || m.includes('biodiversity')) {
+ return `<strong style="color:var(--green)">// URBAN FORESTS &amp; BIODIVERSITY</strong><br><br>
+<strong>Why Trees in Cities?</strong><br>
+Urban forests are among the most cost-effective climate solutions available today.<br><br>
+<strong>Proven Benefits:</strong><br>
+• Absorb up to <strong>150 tonnes of CO₂ per hectare per year</strong><br>
+• Reduce urban temperatures by <strong>2–8°C</strong><br>
+• Remove fine particulate matter (PM2.5) from the air<br>
+• Reduce surface runoff and flood risk by <strong>7–12%</strong><br>
+• Boost mental health — greenery reduces stress by <strong>68%</strong><br>
+• Increase property values by an average of <strong>15%</strong><br><br>
+<strong>Biodiversity:</strong><br>
+Urban forests support pollinators, birds, and insects critical for food systems. Loss of biodiversity threatens <strong>half of global GDP</strong>.<br><br>
+<span class="sdg-cite">SDG 11</span> <span class="sdg-cite">SDG 13</span> <span class="sdg-cite">SDG 15</span>`;
+}
+if (m.includes('circular') || m.includes('recycl') || m.includes('waste') || m.includes('zero waste')) {
+return `<strong style="color:var(--purple)">// THE CIRCULAR ECONOMY</strong><br><br>
+<strong>What is it?</strong><br>
+An economic model that eliminates waste by keeping materials in use as long as possible — replacing the traditional "take-make-dispose" linear model.<br><br>
+<strong>Three Principles:</strong><br>
+1. <strong>Design out waste &amp; pollution</strong><br>
+2. <strong>Keep products &amp; materials in use</strong><br>
+3. <strong>Regenerate natural systems</strong><br><br>
+<strong>Impact at Scale:</strong><br>
+• Could reduce global CO₂ by <strong>45%</strong> by 2030<br>
+• Recycling aluminium uses <strong>95% less energy</strong> than virgin production<br>
+• Recycling paper saves <strong>60%</strong> of energy<br>
+• EU circular economy could create <strong>1.2 million jobs</strong> by 2030<br><br>
+<span class="sdg-cite">SDG 12</span> <span class="sdg-cite">SDG 9</span> <span class="sdg-cite">SDG 11</span>`;
+}
+if (m.includes('transport') || m.includes('electric bus') || m.includes('ev') || m.includes('mobility')) {
+return `<strong style="color:var(--cyan)">// GREEN URBAN TRANSPORT</strong><br><br>
+<strong>The Problem:</strong><br>
+Urban transport generates <strong>~24%</strong> of global CO₂. A single bus replaces up to <strong>50 private cars</strong>.<br><br>
+<strong>Electric Buses:</strong><br>
+• Zero tailpipe emissions<br>
+• Lifetime CO₂ savings of <strong>1,000 tonnes per bus</strong> vs diesel<br>
+• Operating costs <strong>40% lower</strong> than diesel<br>
+• Shenzhen, China operates a <strong>100% electric bus fleet</strong> of 16,000 vehicles<br><br>
+<strong>Sustainable Mobility Hierarchy:</strong><br>
+Walking → Cycling → Public Transit → Electric Vehicles → Private Cars<br><br>
+<strong>15-Minute City:</strong> Every resident reaches work, school, shops, and parks within 15 minutes on foot or bike — dramatically reducing transport emissions.<br><br>
+<span class="sdg-cite">SDG 11</span> <span class="sdg-cite">SDG 13</span> <span class="sdg-cite">SDG 3</span>`;
+}
+if (m.includes('smart cit') || m.includes('iot') || m.includes('digital city')) {
+return `<strong style="color:var(--cyan)">// SMART CITIES &amp; URBAN TECHNOLOGY</strong><br><br>
+<strong>What is a Smart City?</strong><br>
+A city using digital technology, data, and connected infrastructure to improve efficiency, sustainability, and quality of life.<br><br>
+<strong>Key Components:</strong><br>
+• <strong>Smart Grids:</strong> AI-optimised energy reducing waste by 15–20%<br>
+• <strong>Sensors &amp; IoT:</strong> Real-time air, traffic, and water monitoring<br>
+• <strong>Smart Buildings:</strong> Automated HVAC, lighting, energy management<br>
+• <strong>Urban Simulations:</strong> Tools like NeoCity help test decisions before implementation<br><br>
+<strong>Real Examples:</strong><br>
+• <strong>Singapore</strong> — world's smartest city; 100% digital urban planning<br>
+• <strong>Copenhagen</strong> — AI traffic management cut emissions by 10%<br>
+• <strong>Amsterdam</strong> — smart meters reduced household energy use by 14%<br><br>
+Smart city tech could reduce urban emissions by <strong>15%</strong> and energy use by <strong>30%</strong> by 2030. <span class="sdg-cite">SDG 9</span> <span class="sdg-cite">SDG 11</span>`;
+}
+if (m.includes('water') || m.includes('sanitation') || m.includes('drought') || m.includes('sdg 6')) {
+return `<strong style="color:var(--purple)">// WATER CONSERVATION &amp; SDG 6</strong><br><br>
+<strong>SDG 6:</strong> Ensure availability and sustainable management of water and sanitation for all.<br><br>
+<strong>The Global Water Crisis:</strong><br>
+• <strong>2.2 billion people</strong> lack safe drinking water<br>
+• <strong>4.2 billion</strong> lack safely managed sanitation<br>
+• By 2030, global water demand could exceed supply by <strong>40%</strong><br>
+• Water stress affects <strong>4 billion people</strong> for at least one month per year<br><br>
+<strong>Urban Solutions:</strong><br>
+• Rainwater harvesting and grey water reuse<br>
+• Green infrastructure (rain gardens, permeable pavements)<br>
+• Circular water systems in buildings<br>
+• Smart leak detection via IoT sensors<br><br>
+In NeoCity, Recycling Centers and Forests both improve water quality — reflecting real urban water management best practices.`;
+}
+if (m.includes('air quality') || m.includes('pm2') || m.includes('smog') || m.includes('air pollution')) {
+return `<strong style="color:var(--red)">// AIR POLLUTION: THE INVISIBLE KILLER</strong><br><br>
+Air pollution is the <strong>world's largest environmental health risk</strong>, causing <strong>7 million premature deaths annually</strong> (WHO).<br><br>
+<strong>Types of Urban Air Pollution:</strong><br>
+• <strong>PM2.5</strong> — Fine particles from vehicles and industry<br>
+• <strong>NOₓ</strong> — Nitrogen oxides; cause smog and acid rain<br>
+• <strong>Ground-level ozone</strong> — Formed when sunlight reacts with NOₓ<br>
+• <strong>CO₂ &amp; methane</strong> — Primary greenhouse gases<br><br>
+<strong>Sources:</strong> Transport (40%) → Industry (30%) → Buildings (20%) → Other (10%)<br><br>
+<strong>Solutions That Work:</strong><br>
+• Urban tree canopy reduces PM2.5 by up to <strong>25%</strong> locally<br>
+• Low Emission Zones reduce NOₓ by <strong>36%</strong><br>
+• Cycling infrastructure cuts urban emissions by <strong>11%</strong><br><br>
+<span class="sdg-cite">SDG 11</span> <span class="sdg-cite">SDG 13</span> <span class="sdg-cite">SDG 3</span>`;
+}
+if (m.includes('renewable') || m.includes('wind') || m.includes('green energy')) {
+return `<strong style="color:var(--amber)">// RENEWABLE ENERGY: THE TRANSITION</strong><br><br>
+<strong>What are Renewables?</strong><br>
+Energy sources naturally replenished on a human timescale: solar, wind, hydro, geothermal, and bioenergy.<br><br>
+<strong>Global Progress:</strong><br>
+• Renewables now provide <strong>30%+ of global electricity</strong> (2023)<br>
+• 90% of new power capacity added in 2022 was renewable<br>
+• Solar costs fell <strong>89%</strong>, wind costs fell <strong>70%</strong> since 2010<br><br>
+<strong>By Type:</strong><br>
+☀️ <strong>Solar PV</strong> — Now the cheapest electricity ever produced<br>
+💨 <strong>Wind</strong> — Fastest-growing energy source in history<br>
+💧 <strong>Hydro</strong> — Provides 16% of global electricity<br>
+🌋 <strong>Geothermal</strong> — Iceland generates 100% of heating from it<br><br>
+The IEA says renewable capacity must <strong>triple by 2030</strong> for Paris Agreement targets. <span class="sdg-cite">SDG 7</span> <span class="sdg-cite">SDG 13</span>`;
+}
+const defaults = [
+    `Great question! Urban sustainability connects climate science, city planning, and human behaviour. <span class="sdg-cite">SDG 11</span> reminds us that sustainable cities are key to all other development goals.<br><br>You can ask me about:<br>• Any of the 17 SDGs<br>• Climate change science<br>• Renewable technologies<br>• Urban planning strategies<br>• How to improve your NeoCity score`,
+    `That's an interesting area! Sustainability science shows that urban decisions create cascading effects — a single Forest reduces temperatures, improves air quality, supports biodiversity, and boosts mental health simultaneously.<br><br>Try asking about <span class="sdg-cite">SDG 11</span> Sustainable Cities, <span class="sdg-cite">SDG 13</span> Climate Action, or how to reduce your city's carbon footprint.`,
+    `As your NeoCity AI advisor, I specialise in urban planning, climate science, and the UN Sustainable Development Goals. Cities produce over <strong>70% of global carbon emissions</strong> — making them both the biggest part of the problem and the most powerful lever for solutions. What would you like to explore? <span class="sdg-cite">SDG 11</span> <span class="sdg-cite">SDG 13</span>`
+];
+return defaults[Math.floor(Math.random() * defaults.length)];
+}
+function getTop3Tips(d) {
+  const tips = [];
+  if (d.pol > 50) tips.push(`🌳 Add <strong>${Math.ceil((d.pol-30)/14)} Forests</strong> — pollution at ${Math.round(d.pol)}% is dangerously high`);
+  if (d.counts.factory > 0 && d.counts.forest < d.counts.factory) tips.push(`⚖️ Balance your <strong>${d.counts.factory} factories</strong> with at least ${d.counts.factory} Forests + ${d.counts.factory} Recycling Centers`);
+  if (d.counts.solar < 3) tips.push(`☀️ Add ${3-d.counts.solar} more <strong>Solar Plants</strong> — clean energy directly boosts sustainability score`);
+  if (d.hap < 50) tips.push(`🚌 Add <strong>Electric Buses</strong> — happiness at ${Math.round(d.hap)}% is dragging down your score`);
+  if (d.water < 50) tips.push(`♻️ Add <strong>Recycling Centers</strong> — water quality at ${Math.round(d.water)}% needs attention`);
+  if (d.placed < 10) tips.push(`🏗️ <strong>Place more buildings!</strong> Only ${d.placed} placed — a diverse city of 20+ scores significantly higher`);
+  if (tips.length === 0) tips.push('🏆 City performing well! Focus on Forest-Solar-Recycling clusters for compound bonuses');
+  return tips.slice(0, 3);
+}
+function getPollutionTips(d) {
+  const tips = [];
+  if (d.pol > 60) {
+    tips.push(`🚨 <strong>URGENT:</strong> Pollution at ${Math.round(d.pol)}% — well above the safe threshold of 40%. Add at least <strong>${Math.ceil((d.pol-30)/14)} Forests</strong> immediately.`);
+    tips.push(`🏭 You have <strong>${d.counts.factory} factories</strong>. Each adds +20 pollution. Replace ${Math.max(1,Math.floor(d.counts.factory/2))} with Recycling Centers (−11 each).`);
+}
+ else if (d.pol > 35) {
+    tips.push(`⚠️ <strong>Moderate Pollution (${Math.round(d.pol)}%):</strong> In the caution zone. Adding 2–3 more Forests will bring you below the safe threshold.`);
+    tips.push(`♻️ Add <strong>Recycling Centers</strong> — they cut pollution by −11 AND improve water quality, making them exceptional value.`);
+} 
+else {
+    tips.push(`✅ <strong>Pollution well-managed at ${Math.round(d.pol)}%.</strong> Maintain a 2:1 ratio of green buildings to industrial ones.`);
+    tips.push(`🌳 With ${d.counts.forest} Forests placed, you have strong carbon sequestration. Each additional Forest offsets one factory's output.`);
+}
+  if (d.counts.bus === 0) tips.push(`🚌 <strong>Add Electric Buses</strong> — they cut transport pollution by −9 AND are the best happiness builder (+11). Zero-emission transport is transformative.`);
+  return tips;
+}
+function getBuildingRecommendation(d) {
+  const recs = [];
+  if (d.placed === 0) recs.push('🌳 <strong>Start with 3 Forests</strong> — establishes your green baseline before adding anything else');
+  else if (d.pol > 50) recs.push(`🌳 <strong>Priority: Forest ×${Math.ceil((d.pol-25)/14)}</strong> — pollution emergency requires immediate green coverage`);
+  else if (d.counts.solar < 3) recs.push(`☀️ <strong>Solar Plant ×${3-d.counts.solar}</strong> — you need more clean energy. Each adds +15 energy efficiency`);
+  if (d.counts.bus === 0) recs.push('🚌 <strong>Electric Bus ×1</strong> — strongest happiness builder (+11). Place near Smart Home clusters');
+  if (d.counts.recycle === 0) recs.push('♻️ <strong>Recycling Center ×1</strong> — cuts pollution −11 AND fixes water quality. Essential for any city');
+  if (recs.length === 0) recs.push('🏆 Building mix is strong! Focus on <strong>Forest-Solar-Recycling clusters</strong> in empty grid sections');
+  return recs.join('<br>');
+}
+function appendMessage(role, text) {
+  const msgs = document.getElementById('messages');
+  const welcomeEl = msgs.querySelector('.welcome-state');
+  if (welcomeEl) welcomeEl.remove();
+  const time = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  div.innerHTML = `<div class="msg-avatar">${role==='bot'?'🤖':'👤'}</div><div class="msg-content"><div class="bubble">${role==='bot'?text:escapeHtml(text)}</div><div class="msg-time">${time}</div></div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  chatHistory.push({role, text});
+}
+function escapeHtml(t) { return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function showTypingIndicator() {
+  const msgs = document.getElementById('messages');
+  const w = msgs.querySelector('.welcome-state'); if(w) w.remove();
+  const div = document.createElement('div');
+  div.className='msg bot'; div.id='typing-ind';
+  div.innerHTML=`<div class="msg-avatar">🤖</div><div class="msg-content"><div class="bubble"><div class="typing-indicator"><span></span><span></span><span></span></div></div></div>`;
+  msgs.appendChild(div); msgs.scrollTop=msgs.scrollHeight;
+}
+function removeTypingIndicator() { const el=document.getElementById('typing-ind'); if(el) el.remove(); }
+function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text || isTyping) return;
+  input.value=''; autoResize(input); updateCount(input);
+  appendMessage('user', text);
+  document.getElementById('quickChips').innerHTML='';
+  isTyping=true; showTypingIndicator();
+  setTimeout(() => { removeTypingIndicator(); appendMessage('bot', getResponse(text)); isTyping=false; }, 600+Math.random()*800);
+}
+function quickSend(text) { document.getElementById('chatInput').value=text; sendMessage(); }
+function askDomain(topic) { quickSend('Tell me about '+topic); }
+function clearChat() { chatHistory=[]; showWelcome(); renderQuickChips(); }
+function autoResize(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,120)+'px'; }
+function updateCount(el) { document.getElementById('charCount').textContent=el.value.length+' / 400'; }
+function handleKey(e) { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();} }
+const cursor=document.getElementById('cursor'); const trail=document.getElementById('cursor-trail');
+if (!('ontouchstart' in window)) {
+  document.addEventListener('mousemove',e=>{cursor.style.left=e.clientX+'px';cursor.style.top=e.clientY+'px';trail.style.left=e.clientX+'px';trail.style.top=e.clientY+'px';});
+  document.querySelectorAll('button,.domain-tag,.mode-btn,.ws-card,.chip').forEach(el=>{
+    el.addEventListener('mouseenter',()=>cursor.style.transform='translate(-50%,-50%) scale(2)');
+    el.addEventListener('mouseleave',()=>cursor.style.transform='translate(-50%,-50%) scale(1)');
+});
+}
+(function(){
+const c=document.getElementById('bg-canvas'),ctx=c.getContext('2d');
+let W,H,t=0;
+const resize=()=>{W=c.width=window.innerWidth;H=c.height=window.innerHeight;};
+resize(); window.addEventListener('resize',resize);
+const pts=Array.from({length:40},()=>({x:Math.random(),y:Math.random(),vx:(Math.random()-.5)*.0003,vy:(Math.random()-.5)*.0003,r:.4+Math.random()*.9,a:Math.random()}));
+function draw(){
+    t+=.005; ctx.clearRect(0,0,W,H); ctx.fillStyle='#050816'; ctx.fillRect(0,0,W,H);
+    for(let i=0;i<W;i+=52){ctx.strokeStyle=`rgba(123,47,190,${.012+.006*Math.sin(t+i*.008)})`;ctx.lineWidth=.4;ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,H);ctx.stroke();}
+    for(let j=0;j<H;j+=52){ctx.strokeStyle=`rgba(0,209,255,${.008+.004*Math.sin(t+j*.01)})`;ctx.lineWidth=.4;ctx.beginPath();ctx.moveTo(0,j);ctx.lineTo(W,j);ctx.stroke();}
+    [{x:.15,y:.3,r:260,c:'123,47,190',a:.05},{x:.85,y:.7,r:300,c:'0,255,178',a:.04},{x:.5,y:.5,r:200,c:'0,209,255',a:.035}].forEach(g=>{
+      const gr=ctx.createRadialGradient(g.x*W,g.y*H,0,g.x*W,g.y*H,g.r);
+      gr.addColorStop(0,`rgba(${g.c},${g.a})`);gr.addColorStop(1,'transparent');
+      ctx.fillStyle=gr;ctx.beginPath();ctx.arc(g.x*W,g.y*H,g.r,0,Math.PI*2);ctx.fill();
+});
+pts.forEach(p=>{
+p.x+=p.vx;p.y+=p.vy;
+if(p.x<0)p.x=1;if(p.x>1)p.x=0;if(p.y<0)p.y=1;if(p.y>1)p.y=0;
+ctx.beginPath();ctx.arc(p.x*W,p.y*H,p.r,0,Math.PI*2);
+ctx.fillStyle=`rgba(123,47,190,${.2+.3*Math.abs(Math.sin(t+p.a*7))})`;ctx.fill();
+});
+requestAnimationFrame(draw);
+}
+draw();
+})();
+if (!localStorage.getItem('nc_history')) {
+  localStorage.setItem('nc_history',JSON.stringify([
+    {score:34,pollution:72,buildings:8,disasters:2,date:'2025-05-01'},
+    {score:55,pollution:51,buildings:14,disasters:1,date:'2025-05-04'},
+    {score:71,pollution:38,buildings:20,disasters:0,date:'2025-05-07'},
+    {score:83,pollution:22,buildings:27,disasters:0,date:'2025-05-10'},
+]));
+}
+renderCitySnapshot();
+showWelcome();
+renderQuickChips();
+</script>
+</body>
+</html>
