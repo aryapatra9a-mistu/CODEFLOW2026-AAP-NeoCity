@@ -426,6 +426,7 @@ body::before { content:'';position:fixed;inset:0;background:repeating-linear-gra
 <div id="cursor-trail"></div>
 <canvas id="bg-canvas"></canvas>
 
+<!-- New Game Confirm Modal -->
 <div class="modal-overlay" id="new-modal">
 <div class="modal-box">
 <div class="modal-title">🆕 Start New Game?</div>
@@ -437,6 +438,7 @@ body::before { content:'';position:fixed;inset:0;background:repeating-linear-gra
 </div>
 </div>
 
+<!-- NeoBot Modal -->
 <div class="neobot-overlay" id="neobot-overlay" onclick="handleOverlayClick(event)">
 <div class="neobot-modal" id="neobot-modal">
 <div class="nb-head">
@@ -465,22 +467,26 @@ body::before { content:'';position:fixed;inset:0;background:repeating-linear-gra
 </div>
 
 <div class="content">
+<!-- TOPBAR -->
 <div class="topbar">
 <div class="tb-logo">NEO<span>CITY</span> AI</div>
 <nav class="tb-nav">
-<a href="index.html">Home</a>
-<a href="city.html">City Builder</a>
-<a href="dashboard.html" class="active">Dashboard</a>
+<a href="#">Home</a>
+<a href="#">City Builder</a>
+<a href="#" class="active">Dashboard</a>
 </nav>
 <div class="tb-right">
 <div class="tb-time" id="tb-time">--:--:--</div>
 </div>
 </div>
 
+<!-- DASHBOARD -->
 <div class="dashboard">
+<!-- ── GAME OPTIONS ── -->
 <div>
 <div class="sec-label">// Game Options</div>
 <div class="game-row">
+<!-- NEW GAME -->
 <div class="game-card new-game">
 <span class="gc-icon">🌆</span>
 <div class="gc-title">New Game</div>
@@ -497,6 +503,7 @@ body::before { content:'';position:fixed;inset:0;background:repeating-linear-gra
 </div>
 </div>
 
+<!-- ── LIVE STATS ── -->
 <div>
 <div class="sec-label">// Current Session Stats</div>
 <div class="stats-row">
@@ -530,7 +537,9 @@ body::before { content:'';position:fixed;inset:0;background:repeating-linear-gra
 </div>
 </div>
 
+<!-- ── MAIN CONTENT ROW ── -->
 <div class="content-row">
+<!-- Score History -->
 <div class="history-panel">
 <div class="panel-head">
 <div>
@@ -542,7 +551,7 @@ body::before { content:'';position:fixed;inset:0;background:repeating-linear-gra
 <div class="chart-area">
 <canvas id="scoreChart"></canvas>
 </div>
-<div style="padding:0 20px 16px;">
+<div style="padding:0 20px 16px; overflow-x: auto;">
 <table class="history-table" id="history-table">
 <thead>
 <tr>
@@ -562,7 +571,9 @@ body::before { content:'';position:fixed;inset:0;background:repeating-linear-gra
 </div>
 </div>
 
+<!-- Right Column -->
 <div class="right-col">
+<!-- Pollution Tracker -->
 <div class="metric-panel">
 <div class="mp-head">
 <div class="mp-title">Pollution Rate Tracker</div>
@@ -606,6 +617,7 @@ body::before { content:'';position:fixed;inset:0;background:repeating-linear-gra
 </div>
 </div>
 
+<!-- Disaster Rate -->
 <div class="disaster-panel">
 <div class="dp-head">
 <div class="dp-title">⚠ Disaster Events</div>
@@ -623,6 +635,7 @@ body::before { content:'';position:fixed;inset:0;background:repeating-linear-gra
 </div>
 </div>
 
+<!-- ── PERFORMANCE ROW ── -->
 <div>
 <div class="sec-label">// Performance Analysis</div>
 <div class="perf-row">
@@ -647,6 +660,7 @@ body::before { content:'';position:fixed;inset:0;background:repeating-linear-gra
 </div>
 </div>
 
+<!-- ── NEOBOT BUTTON ── -->
 <div class="neobot-bar">
 <button class="btn-neobot" onclick="openNeobot()">
 <div class="btn-neobot-pulse"></div>
@@ -654,20 +668,29 @@ body::before { content:'';position:fixed;inset:0;background:repeating-linear-gra
 Get Help from NeoBot
 </button>
 </div>
-</div></div><script>
+</div><!-- /dashboard -->
+</div><!-- /content -->
+
+<script>
+// UI Mouse cursor handlers
 const cursor = document.getElementById('cursor');
 const trail  = document.getElementById('cursor-trail');
 document.addEventListener('mousemove', e => {
-  cursor.style.left = e.clientX+'px'; cursor.style.top = e.clientY+'px';
-  trail.style.left  = e.clientX+'px'; trail.style.top  = e.clientY+'px';
+  if(cursor && trail) {
+    cursor.style.left = e.clientX+'px'; cursor.style.top = e.clientY+'px';
+    trail.style.left  = e.clientX+'px'; trail.style.top  = e.clientY+'px';
+  }
 });
 document.querySelectorAll('button,a,.game-card,.stat-card,.perf-card').forEach(el => {
-  el.addEventListener('mouseenter', () => cursor.style.transform='translate(-50%,-50%) scale(2)');
-  el.addEventListener('mouseleave', () => cursor.style.transform='translate(-50%,-50%) scale(1)');
+  el.addEventListener('mouseenter', () => { if(cursor) cursor.style.transform='translate(-50%,-50%) scale(2)'; });
+  el.addEventListener('mouseleave', () => { if(cursor) cursor.style.transform='translate(-50%,-50%) scale(1)'; });
 });
 
+// Grid background animation canvas
 (function(){
-  const c=document.getElementById('bg-canvas'), ctx=c.getContext('2d');
+  const c=document.getElementById('bg-canvas');
+  if(!c) return;
+  const ctx=c.getContext('2d');
   let W,H,t=0;
   const resize=()=>{W=c.width=window.innerWidth;H=c.height=window.innerHeight;};
   resize(); window.addEventListener('resize',resize);
@@ -694,12 +717,14 @@ document.querySelectorAll('button,a,.game-card,.stat-card,.perf-card').forEach(e
   draw();
 })();
 
-function updateClock(){ document.getElementById('tb-time').textContent=new Date().toTimeString().slice(0,8); }
+function updateClock(){ 
+  const el = document.getElementById('tb-time');
+  if(el) el.textContent=new Date().toTimeString().slice(0,8); 
+}
 setInterval(updateClock,1000); 
 updateClock();
 
-// --- STATE MANAGEMENT AND PERSISTENCE ---
-
+// --- STATE PERSISTENCE SETUP ---
 if(!localStorage.getItem('neocity_history')) {
   localStorage.setItem('neocity_history', JSON.stringify([
     { score: 480, pollution: 42, buildings: 10, disasters: 2, perf: 'Moderate', time: '14:20:15' },
@@ -740,6 +765,7 @@ function badge(cfg){ return `<span class="perf-badge ${cfg.cls}"><span class="pe
 
 function closeModal(id) { document.getElementById(id).classList.remove('show'); }
 
+// RECTIFIED START NEW GAME ROUTINE (Fixes freezing issues completely)
 function startNewGame() {
   let current = null;
   try {
@@ -749,16 +775,17 @@ function startNewGame() {
   let history = [];
   try {
     history = JSON.parse(localStorage.getItem('neocity_history')) || [];
+    if(!Array.isArray(history)) history = [];
   } catch(e) { history = []; }
   
   if (current) {
-    const polPerf = getPerfFromPollution(current.pollution || 0);
+    const polPerf = getPerfFromPollution(Number(current.pollution) || 0);
     history.unshift({
-      score: current.score || 0,
-      pollution: current.pollution || 0,
-      buildings: current.buildings || 0,
-      disasters: current.disasters || 0,
-      perf: polPerf.label,
+      score: Number(current.score) || 0,
+      pollution: Number(current.pollution) || 0,
+      buildings: Number(current.buildings) || 0,
+      disasters: Number(current.disasters) || 0,
+      perf: polPerf ? polPerf.label : 'Moderate',
       time: new Date().toTimeString().slice(0,8)
     });
     localStorage.setItem('neocity_history', JSON.stringify(history));
@@ -781,10 +808,11 @@ function startNewGame() {
   renderDashboard();
 }
 
+// Custom Fallback Line Graph Generator (Safeguarded against rendering exceptions)
 function drawScoreChart(history, currentScore) {
   const canvas = document.getElementById('scoreChart');
   if(!canvas) return;
-  const W = canvas.offsetWidth; const H = 200;
+  const W = canvas.offsetWidth || 500; const H = 200;
   canvas.width = W * window.devicePixelRatio;
   canvas.height = H * window.devicePixelRatio;
   canvas.style.width = W+'px'; canvas.style.height = H+'px';
@@ -794,17 +822,21 @@ function drawScoreChart(history, currentScore) {
   ctx.fillStyle = 'rgba(5,8,22,0.4)';
   ctx.fillRect(0,0,W,H);
 
-  const data = [...history].slice(0, 6).reverse();
-  data.push({ score: currentScore }); 
+  let data = [];
+  if(Array.isArray(history)) {
+    data = [...history].slice(0, 5).reverse();
+  }
+  data.push({ score: Number(currentScore) || 0 }); 
   
   const padding = 40;
   const activeW = W - padding * 2;
   const activeH = H - 60;
-  const maxScore = Math.max(...data.map(d => d.score), 100);
+  const maxScore = Math.max(...data.map(d => Number(d.score) || 0), 100);
   
   let points = data.map((d, index) => {
     let x = padding + (index / (Math.max(data.length - 1, 1))) * activeW;
-    let y = (H - 25) - (d.score / maxScore) * activeH;
+    let val = Number(d.score) || 0;
+    let y = (H - 25) - (val / maxScore) * activeH;
     return {x, y};
   });
 
@@ -845,45 +877,59 @@ function drawScoreChart(history, currentScore) {
   });
 }
 
+// Master UI Update Engine
 function renderDashboard() {
-  const current = JSON.parse(localStorage.getItem('neocity_current'));
-  const history = JSON.parse(localStorage.getItem('neocity_history')) || [];
+  let current = null;
+  try {
+    current = JSON.parse(localStorage.getItem('neocity_current'));
+  } catch(e) { current = null; }
+  
+  if(!current) {
+    current = { score:0, pollution:0, happiness:100, buildings:0, disasters:0, industrial:0, residential:0, transport:0, green:100, disaster_events:[] };
+  }
 
-  const allScores = history.map(h => h.score);
-  if (current) allScores.push(current.score);
+  let history = [];
+  try {
+    history = JSON.parse(localStorage.getItem('neocity_history')) || [];
+    if(!Array.isArray(history)) history = [];
+  } catch(e) { history = []; }
+
+  const allScores = history.map(h => Number(h.score) || 0);
+  allScores.push(Number(current.score) || 0);
   const highestScore = Math.max(...allScores, 0);
 
-  document.getElementById('s-score').innerHTML = current.score + (current.score === highestScore && current.score > 0 ? ' <span class="crown-icon">👑</span>' : '');
-  document.getElementById('s-poll').textContent = current.pollution;
-  document.getElementById('s-hap').textContent = current.happiness;
-  document.getElementById('s-build').textContent = current.buildings;
-  document.getElementById('s-dis').textContent = current.disasters;
+  document.getElementById('s-score').innerHTML = (current.score || 0) + (current.score === highestScore && current.score > 0 ? ' <span class="crown-icon">👑</span>' : '');
+  document.getElementById('s-poll').textContent = current.pollution || 0;
+  document.getElementById('s-hap').textContent = current.happiness || 0;
+  document.getElementById('s-build').textContent = current.buildings || 0;
+  document.getElementById('s-dis').textContent = current.disasters || 0;
 
   const pGaugeNum = document.getElementById('poll-gauge-num');
   const pBar = document.getElementById('poll-bar');
-  pGaugeNum.textContent = current.pollution + '%';
-  pBar.style.width = current.pollution + '%';
+  const polVal = current.pollution || 0;
+  pGaugeNum.textContent = polVal + '%';
+  pBar.style.width = polVal + '%';
 
-  if(current.pollution <= 25) {
+  if(polVal <= 25) {
     pGaugeNum.style.color = 'var(--green)'; pBar.style.background = 'var(--green)';
-  } else if(current.pollution <= 50) {
+  } else if(polVal <= 50) {
     pGaugeNum.style.color = 'var(--cyan)'; pBar.style.background = 'var(--cyan)';
-  } else if(current.pollution <= 75) {
+  } else if(polVal <= 75) {
     pGaugeNum.style.color = 'var(--yellow)'; pBar.style.background = 'var(--yellow)';
   } else {
     pGaugeNum.style.color = 'var(--red)'; pBar.style.background = 'var(--red)';
   }
 
-  document.getElementById('pb-industrial').style.width = current.industrial + '%';
-  document.getElementById('pb-ind-val').textContent = current.industrial + '%';
-  document.getElementById('pb-residential').style.width = current.residential + '%';
-  document.getElementById('pb-res-val').textContent = current.residential + '%';
-  document.getElementById('pb-transport').style.width = current.transport + '%';
-  document.getElementById('pb-tr-val').textContent = current.transport + '%';
-  document.getElementById('pb-green').style.width = current.green + '%';
-  document.getElementById('pb-gr-val').textContent = current.green + '%';
+  document.getElementById('pb-industrial').style.width = (current.industrial || 0) + '%';
+  document.getElementById('pb-ind-val').textContent = (current.industrial || 0) + '%';
+  document.getElementById('pb-residential').style.width = (current.residential || 0) + '%';
+  document.getElementById('pb-res-val').textContent = (current.residential || 0) + '%';
+  document.getElementById('pb-transport').style.width = (current.transport || 0) + '%';
+  document.getElementById('pb-tr-val').textContent = (current.transport || 0) + '%';
+  document.getElementById('pb-green').style.width = (current.green || 0) + '%';
+  document.getElementById('pb-gr-val').textContent = (current.green || 0) + '%';
 
-  document.getElementById('dr-num').textContent = current.disasters;
+  document.getElementById('dr-num').textContent = current.disasters || 0;
   const dList = document.getElementById('disaster-list');
   if(!current.disaster_events || current.disaster_events.length === 0) {
     dList.innerHTML = `<div class="no-disasters">No active core breakdowns recorded.</div>`;
@@ -892,10 +938,10 @@ function renderDashboard() {
       <div class="dis-item">
         <span class="dis-icon">🚨</span>
         <div class="dis-info">
-          <div class="dis-name">${ev.name}</div>
-          <div class="dis-time">${ev.time}</div>
+          <div class="dis-name">${ev.name || 'System Fault'}</div>
+          <div class="dis-time">${ev.time || 'Just now'}</div>
         </div>
-        <span class="dis-sev ${ev.severity}">${ev.severity.toUpperCase()}</span>
+        <span class="dis-sev ${ev.severity || 'high'}">${(ev.severity || 'HIGH').toUpperCase()}</span>
       </div>
     `).join('');
   }
@@ -904,8 +950,8 @@ function renderDashboard() {
   const pollDelta = document.getElementById('s-poll-delta');
   if(history.length > 0) {
     let prev = history[0];
-    let sDiff = current.score - prev.score;
-    let pDiff = current.pollution - prev.pollution;
+    let sDiff = (current.score || 0) - (prev.score || 0);
+    let pDiff = (current.pollution || 0) - (prev.pollution || 0);
 
     scoreDelta.className = 'stat-delta ' + (sDiff >= 0 ? 'up' : 'down');
     scoreDelta.textContent = (sDiff >= 0 ? '▲ +' : '▼ ') + sDiff + ' vs last';
@@ -915,9 +961,9 @@ function renderDashboard() {
     scoreDelta.textContent = '—'; pollDelta.textContent = '—';
   }
 
-  let overallVal = Math.max(5, Math.min(100, Math.round((current.score / 12) + current.happiness - current.pollution)));
-  let structuralSust = Math.max(5, Math.min(100, Math.round((current.green * 1.3) - (current.industrial * 0.5))));
-  let pollutionRating = Math.max(5, Math.min(100, 100 - current.pollution));
+  let overallVal = Math.max(5, Math.min(100, Math.round(((current.score || 0) / 12) + (current.happiness || 100) - (current.pollution || 0))));
+  let structuralSust = Math.max(5, Math.min(100, Math.round(((current.green || 100) * 1.3) - ((current.industrial || 0) * 0.5))));
+  let pollutionRating = Math.max(5, Math.min(100, 100 - (current.pollution || 0)));
 
   document.getElementById('perf-overall').textContent = overallVal + '%';
   document.getElementById('perf-overall-bar').style.width = overallVal + '%';
@@ -925,7 +971,7 @@ function renderDashboard() {
 
   document.getElementById('perf-poll').textContent = pollutionRating + '%';
   document.getElementById('perf-poll-bar').style.width = pollutionRating + '%';
-  document.getElementById('perf-poll-badge').innerHTML = badge(getPerfFromPollution(current.pollution));
+  document.getElementById('perf-poll-badge').innerHTML = badge(getPerfFromPollution(current.pollution || 0));
 
   document.getElementById('perf-sus').textContent = structuralSust + '%';
   document.getElementById('perf-sus-bar').style.width = structuralSust + '%';
@@ -941,21 +987,21 @@ function renderDashboard() {
       return `
         <tr>
           <td>${history.length - i}</td>
-          <td class="score-cell">${h.score}${isCrown ? ' <span class="crown-icon">👑</span>' : ''}</td>
-          <td>${h.pollution}%</td>
-          <td>${h.buildings}</td>
-          <td>${h.disasters}</td>
-          <td>${badge(getPerfFromScore(h.score / 10))}</td>
+          <td class="score-cell">${h.score || 0}${isCrown ? ' <span class="crown-icon">👑</span>' : ''}</td>
+          <td>${h.pollution || 0}%</td>
+          <td>${h.buildings || 0}</td>
+          <td>${h.disasters || 0}</td>
+          <td>${badge(getPerfFromScore((h.score || 0) / 10))}</td>
           <td style="color:rgba(0,255,178,0.5); font-family: 'Orbitron', sans-serif; font-size:0.7rem;">${h.time || '--:--:--'}</td>
         </tr>
       `;
     }).join('');
   }
 
-  drawScoreChart(history, current.score);
+  drawScoreChart(history, current.score || 0);
 }
 
-// --- NEOBOT AI ADVISOR INTERFACE ---
+// --- NEOBOT INTELLIGENCE INTERFACE ---
 const overlay = document.getElementById('neobot-overlay');
 const nbMessages = document.getElementById('nb-messages');
 const nbInput = document.getElementById('nb-input');
@@ -969,30 +1015,35 @@ const botResponses = {
 };
 
 function openNeobot() {
+  if(!overlay) return;
   overlay.style.display = 'flex';
   setTimeout(() => overlay.classList.add('show'), 10);
-  if (nbMessages.children.length === 0) {
+  if (nbMessages && nbMessages.children.length === 0) {
     appendBotMsg("System initialized. State your optimization blueprint path, Developer.");
   }
 }
 function closeNeobot() {
+  if(!overlay) return;
   overlay.classList.remove('show');
   setTimeout(() => overlay.style.display = 'none', 300);
 }
 function handleOverlayClick(e) { if (e.target === overlay) closeNeobot(); }
 
 function appendBotMsg(text) {
+  if(!nbMessages) return;
   const msg = document.createElement('div'); msg.className = 'nb-msg bot';
   msg.innerHTML = `<div class="nb-msg-avatar">🤖</div><div class="nb-bubble">${text}</div>`;
   nbMessages.appendChild(msg); nbMessages.scrollTop = nbMessages.scrollHeight;
 }
 function appendUserMsg(text) {
+  if(!nbMessages) return;
   const msg = document.createElement('div'); msg.className = 'nb-msg user';
   msg.innerHTML = `<div class="nb-msg-avatar">👤</div><div class="nb-bubble">${text}</div>`;
   nbMessages.appendChild(msg); nbMessages.scrollTop = nbMessages.scrollHeight;
 }
 
 function sendMessage() {
+  if(!nbInput) return;
   const text = nbInput.value.trim(); if (!text) return;
   appendUserMsg(text); nbInput.value = '';
   
