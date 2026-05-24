@@ -580,7 +580,7 @@ const user=getUsers().find(u=>u.email===email&&u.pass===btoa(pass));
 if(user){
 if(document.getElementById('remember').checked)setSession(user);
 showMsg('login-msg','success','Access granted. Loading NeoCity…');
-setTimeout(()=>{window.location.href='index.html';},1200);
+setTimeout(()=>{window.location.href='landingpage.html';},1200);
 } 
 else 
 {
