@@ -468,9 +468,9 @@ body::before { content:'';position:fixed;inset:0;background:repeating-linear-gra
 <div class="topbar">
 <div class="tb-logo">NEO<span>CITY</span> AI</div>
 <nav class="tb-nav">
-<a href="#">Home</a>
-<a href="#">City Builder</a>
-<a href="#" class="active">Dashboard</a>
+<a href="index.html">Home</a>
+<a href="city.html">City Builder</a>
+<a href="dashboard.html" class="active">Dashboard</a>
 </nav>
 <div class="tb-right">
 <div class="tb-time" id="tb-time">--:--:--</div>
@@ -542,7 +542,7 @@ body::before { content:'';position:fixed;inset:0;background:repeating-linear-gra
 <div class="chart-area">
 <canvas id="scoreChart"></canvas>
 </div>
-<div style="padding:0 20px 16px; overflow-x: auto;">
+<div style="padding:0 20px 16px;">
 <table class="history-table" id="history-table">
 <thead>
 <tr>
@@ -552,7 +552,7 @@ body::before { content:'';position:fixed;inset:0;background:repeating-linear-gra
 <th>Buildings</th>
 <th>Disasters</th>
 <th>Performance</th>
-<th>Timestamp</th>
+<th>Date</th>
 </tr>
 </thead>
 <tbody id="history-tbody">
@@ -655,29 +655,30 @@ Get Help from NeoBot
 </button>
 </div>
 </div></div><script>
-// UI Mouse cursor handlers
+// --- Custom Cursor Logic ---
 const cursor = document.getElementById('cursor');
 const trail  = document.getElementById('cursor-trail');
 document.addEventListener('mousemove', e => {
-  if(cursor && trail) {
-    cursor.style.left = e.clientX+'px'; cursor.style.top = e.clientY+'px';
-    trail.style.left  = e.clientX+'px'; trail.style.top  = e.clientY+'px';
-  }
+  cursor.style.left = e.clientX+'px'; cursor.style.top = e.clientY+'px';
+  trail.style.left  = e.clientX+'px'; trail.style.top  = e.clientY+'px';
 });
-document.querySelectorAll('button,a,.game-card,.stat-card,.perf-card').forEach(el => {
-  el.addEventListener('mouseenter', () => { if(cursor) cursor.style.transform='translate(-50%,-50%) scale(2)'; });
-  el.addEventListener('mouseleave', () => { if(cursor) cursor.style.transform='translate(-50%,-50%) scale(1)'; });
-});
+function addCursorHoverListeners() {
+  document.querySelectorAll('button,a,.game-card,.stat-card,.perf-card,.nb-chip').forEach(el => {
+    if(!el.hasAttribute('data-cursor-bound')) {
+      el.setAttribute('data-cursor-bound', 'true');
+      el.addEventListener('mouseenter', () => cursor.style.transform='translate(-50%,-50%) scale(2)');
+      el.addEventListener('mouseleave', () => cursor.style.transform='translate(-50%,-50%) scale(1)');
+    }
+  });
+}
 
-// Grid background animation canvas
+// --- Background Matrix Canvas ---
 (function(){
-  const c=document.getElementById('bg-canvas');
-  if(!c) return;
-  const ctx=c.getContext('2d');
+  const c=document.getElementById('bg-canvas'), ctx=c.getContext('2d');
   let W,H,t=0;
   const resize=()=>{W=c.width=window.innerWidth;H=c.height=window.innerHeight;};
   resize(); window.addEventListener('resize',resize);
-  const pts=Array.from({length:50},()=>({x:Math.random(),y:Math.random(),vx:(Math.random()-.5)*.0003,vy:(Math.random()-.5)*.0003,r:.5+Math.random()*1.2,a:Math.random()}));
+  const pts=Array.from({length:50},()=>({x:Math.random(),y:Math.random(),vx:(Math.random()-.5)*.0003,vy:(Math.random()-.5)*.0003,r:.5+Math.random()*1.2,p_phase:Math.random()}));
   function draw(){
     t+=.006; ctx.clearRect(0,0,W,H);
     ctx.fillStyle='#050816';
@@ -693,123 +694,104 @@ document.querySelectorAll('button,a,.game-card,.stat-card,.perf-card').forEach(e
       p.x+=p.vx; p.y+=p.vy;
       if(p.x<0)p.x=1; if(p.x>1)p.x=0; if(p.y<0)p.y=1; if(p.y>1)p.y=0;
       ctx.beginPath(); ctx.arc(p.x*W,p.y*H,p.r,0,Math.PI*2);
-      ctx.fillStyle=`rgba(0,255,178,${.15+.2*Math.abs(Math.sin(t+p.a*8))})`; ctx.fill();
+      ctx.fillStyle=`rgba(0,255,178,${.15+.2*Math.abs(Math.sin(t+p.p_phase*8))})`; ctx.fill();
     });
     requestAnimationFrame(draw);
   }
   draw();
 })();
 
-function updateClock(){ 
-  const el = document.getElementById('tb-time');
-  if(el) el.textContent=new Date().toTimeString().slice(0,8); 
-}
+// --- Topbar Clock ---
+function updateClock(){ document.getElementById('tb-time').textContent=new Date().toTimeString().slice(0,8); }
 setInterval(updateClock,1000); 
 updateClock();
 
-// --- STATE PERSISTENCE SETUP ---
-if(!localStorage.getItem('neocity_history')) {
-  localStorage.setItem('neocity_history', JSON.stringify([
-    { score: 480, pollution: 42, buildings: 10, disasters: 2, perf: 'Moderate', time: '14:20:15' },
-    { score: 710, pollution: 25, buildings: 18, disasters: 0, perf: 'Good', time: '16:45:32' }
-  ]));
-}
-
-if(!localStorage.getItem('neocity_current')) {
-  localStorage.setItem('neocity_current', JSON.stringify({
-    score: 850,
-    pollution: 28,
-    happiness: 84,
-    buildings: 22,
-    disasters: 1,
-    industrial: 35,
-    residential: 55,
-    transport: 40,
-    green: 75,
-    disaster_events: [{name: 'Grid Overload', time: '5m ago', severity: 'med'}]
-  }));
-}
-
+// --- Core Helper Functions ---
 function getPerfFromPollution(pol) {
-  if (pol <= 20) return { label:'Excellent', cls:'excellent' };
-  if (pol <= 45) return { label:'Good',      cls:'good' };
-  if (pol <= 70) return { label:'Moderate',  cls:'moderate' };
-  return               { label:'Poor',       cls:'poor' };
+  if (pol <= 20) return { label:'Excellent', cls:'excellent', score:95, color:'var(--green)' };
+  if (pol <= 40) return { label:'Good',      cls:'good',      score:75, color:'var(--cyan)' };
+  if (pol <= 65) return { label:'Moderate',  cls:'moderate',  score:50, color:'var(--yellow)' };
+  return                { label:'Poor',       cls:'poor',      score:20, color:'var(--red)' };
 }
-
 function getPerfFromScore(score) {
-  if (score >= 80) return { label:'Excellent', cls:'excellent' };
-  if (score >= 55) return { label:'Good',      cls:'good' };
-  if (score >= 35) return { label:'Moderate',  cls:'moderate' };
-  return                  { label:'Poor',       cls:'poor' };
+  if (score >= 800) return { label:'Excellent', cls:'excellent', color:'var(--green)' };
+  if (score >= 500) return { label:'Good',      cls:'good',      color:'var(--cyan)' };
+  if (score >= 250) return { label:'Moderate',  cls:'moderate',  color:'var(--yellow)' };
+  return                   { label:'Poor',       cls:'poor',      color:'var(--red)' };
 }
-
 function badge(cfg){ return `<span class="perf-badge ${cfg.cls}"><span class="perf-dot"></span>${cfg.label}</span>`; }
-
 function closeModal(id) { document.getElementById(id).classList.remove('show'); }
 
-// RECTIFIED START NEW GAME ROUTINE WITH REDIRECT INTEGRATED
+// --- Game State & Simulation Logic ---
+let cityData = {
+  score: 0,
+  pollution: 0,
+  happiness: 0,
+  buildings: 0,
+  disasters: 0,
+  breakdown: { industrial: 0, residential: 0, transport: 0, green: 0 },
+  disasterEvents: []
+};
+
+function loadCityData() {
+  const stored = localStorage.getItem('neo_city_current');
+  if (stored) {
+    cityData = JSON.parse(stored);
+  } else {
+    cityData = {
+      score: 485,
+      pollution: 34,
+      happiness: 78,
+      buildings: 24,
+      disasters: 1,
+      breakdown: { industrial: 45, residential: 30, transport: 50, green: 40 },
+      disasterEvents: [
+        { name: "Grid Overload", time: "20 mins ago", severity: "med" }
+      ]
+    };
+    saveCityData();
+  }
+}
+
+function saveCityData() {
+  localStorage.setItem('neo_city_current', JSON.stringify(cityData));
+}
+
 function startNewGame() {
-  let current = null;
-  try {
-    current = JSON.parse(localStorage.getItem('neocity_current'));
-  } catch(e) { current = null; }
-  
-  let history = [];
-  try {
-    history = JSON.parse(localStorage.getItem('neocity_history')) || [];
-    if(!Array.isArray(history)) history = [];
-  } catch(e) { history = []; }
-  
-  if (current) {
-    const polPerf = getPerfFromPollution(Number(current.pollution) || 0);
+  let history = JSON.parse(localStorage.getItem('neo_city_history') || '[]');
+  if (cityData.buildings > 0) {
+    const scorePerf = getPerfFromScore(cityData.score);
     history.unshift({
-      score: Number(current.score) || 0,
-      pollution: Number(current.pollution) || 0,
-      buildings: Number(current.buildings) || 0,
-      disasters: Number(current.disasters) || 0,
-      perf: polPerf ? polPerf.label : 'Moderate',
-      time: new Date().toTimeString().slice(0,8)
+      id: history.length + 1,
+      score: cityData.score,
+      pollution: cityData.pollution,
+      buildings: cityData.buildings,
+      disasters: cityData.disasters,
+      perfLabel: scorePerf.label,
+      perfCls: scorePerf.cls,
+      date: new Date().toLocaleDateString(undefined, {month:'short', day:'numeric'})
     });
-    localStorage.setItem('neocity_history', JSON.stringify(history));
+    localStorage.setItem('neo_city_history', JSON.stringify(history));
   }
 
-  const freshSession = {
+  cityData = {
     score: 0,
     pollution: 0,
     happiness: 100,
     buildings: 0,
     disasters: 0,
-    industrial: 0,
-    residential: 0,
-    transport: 0,
-    green: 100,
-    disaster_events: []
+    breakdown: { industrial: 0, residential: 0, transport: 0, green: 100 },
+    disasterEvents: []
   };
-  localStorage.setItem('neocity_current', JSON.stringify(freshSession));
+  saveCityData();
   closeModal('new-modal');
   renderDashboard();
-
-  // ─── REDIRECTION & VIEW SWITCHING ROUTE ENGINE ───
-  const dashboardView = document.getElementById('dashboard-screen') || document.querySelector('.dashboard');
-  const gameView = document.getElementById('game-screen') || document.getElementById('city-builder');
-
-  if (dashboardView && gameView && dashboardView.id === 'dashboard-screen') {
-    // If running in a single-file tabs system
-    dashboardView.style.display = 'none';
-    gameView.style.display = 'block';
-    if (typeof showTab === 'function') { showTab('city-builder'); }
-  } else {
-    // Standard Multi-file fallback path redirecting back to the builder page
-    window.location.href = 'index.html'; 
-  }
 }
 
-// Custom Fallback Line Graph Generator
-function drawScoreChart(history, currentScore) {
+// --- High Tech Canvas Score Chart ---
+function drawScoreChart(history) {
   const canvas = document.getElementById('scoreChart');
-  if(!canvas) return;
-  const W = canvas.offsetWidth || 500; const H = 200;
+  const W = canvas.offsetWidth; const H = 200;
   canvas.width = W * window.devicePixelRatio;
   canvas.height = H * window.devicePixelRatio;
   canvas.style.width = W+'px'; canvas.style.height = H+'px';
@@ -819,259 +801,271 @@ function drawScoreChart(history, currentScore) {
   ctx.fillStyle = 'rgba(5,8,22,0.4)';
   ctx.fillRect(0,0,W,H);
 
-  let data = [];
-  if(Array.isArray(history)) {
-    data = [...history].slice(0, 5).reverse();
+  if (!history || history.length === 0) {
+    ctx.fillStyle = 'rgba(232,244,255,.2)';
+    ctx.font = '11px Orbitron, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('No history data available — play a match first', W/2, H/2);
+    return;
   }
-  data.push({ score: Number(currentScore) || 0 }); 
-  
-  const padding = 40;
-  const activeW = W - padding * 2;
-  const activeH = H - 60;
-  const maxScore = Math.max(...data.map(d => Number(d.score) || 0), 100);
-  
-  let points = data.map((d, index) => {
-    let x = padding + (index / (Math.max(data.length - 1, 1))) * activeW;
-    let val = Number(d.score) || 0;
-    let y = (H - 25) - (val / maxScore) * activeH;
-    return {x, y};
+
+  const chartData = [...history].slice(0, 7).reverse();
+  const maxScore = Math.max(...chartData.map(d => d.score), 100) * 1.15;
+  const paddingX = 45; const paddingY = 30;
+  const graphW = W - paddingX * 2; const graphH = H - paddingY * 2;
+
+  ctx.strokeStyle = 'rgba(0,255,178,0.05)';
+  ctx.lineWidth = 1;
+  for(let i = 0; i <= 4; i++) {
+    let y = paddingY + (graphH / 4) * i;
+    ctx.beginPath(); ctx.moveTo(paddingX, y); ctx.lineTo(W - paddingX, y); ctx.stroke();
+  }
+
+  let points = chartData.map((d, index) => {
+    let x = paddingX + (graphW / (Math.max(chartData.length - 1, 1))) * index;
+    let y = H - paddingY - (d.score / maxScore) * graphH;
+    return {x, y, ...d};
   });
 
   if(points.length > 1) {
-    let grad = ctx.createLinearGradient(0,0,0,H);
-    grad.addColorStop(0, 'rgba(0, 255, 172, 0.12)');
-    grad.addColorStop(1, 'rgba(0, 255, 172, 0)');
-    ctx.fillStyle = grad;
     ctx.beginPath();
-    ctx.moveTo(points[0].x, H - 15);
+    ctx.moveTo(points[0].x, H - paddingY);
     points.forEach(p => ctx.lineTo(p.x, p.y));
-    ctx.lineTo(points[points.length-1].x, H - 15);
-    ctx.closePath();
-    ctx.fill();
+    ctx.lineTo(points[points.length - 1].x, H - paddingY);
+    let grad = ctx.createLinearGradient(0, paddingY, 0, H - paddingY);
+    grad.addColorStop(0, 'rgba(0,255,178,0.12)');
+    grad.addColorStop(1, 'rgba(0,255,178,0)');
+    ctx.fillStyle = grad; ctx.fill();
   }
 
   ctx.strokeStyle = '#00FFB2';
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 2.5;
+  ctx.shadowColor = 'rgba(0,255,178,0.4)';
+  ctx.shadowBlur = 8;
   ctx.beginPath();
-  points.forEach((p, idx) => {
-    if(idx === 0) ctx.moveTo(p.x, p.y);
-    else ctx.lineTo(p.x, p.y);
-  });
+  points.forEach((p, i) => { if(i===0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y); });
   ctx.stroke();
+  ctx.shadowBlur = 0;
 
-  points.forEach((p, idx) => {
+  points.forEach(p => {
     ctx.fillStyle = '#050816';
-    ctx.strokeStyle = idx === points.length - 1 ? '#FFB800' : '#00D1FF';
+    ctx.strokeStyle = '#00D1FF';
     ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
+    ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI*2); ctx.fill(); ctx.stroke();
 
-    ctx.fillStyle = 'rgba(232,244,255,0.8)';
+    ctx.fillStyle = 'rgba(232,244,255,0.7)';
     ctx.font = '9px Orbitron, sans-serif';
-    ctx.fillText(data[idx].score, p.x - 4, p.y - 10);
+    ctx.textAlign = 'center';
+    ctx.fillText(p.score, p.x, p.y - 10);
   });
 }
 
-// Master UI Update Engine
+// --- Render Layout Component Engines ---
 function renderDashboard() {
-  let current = null;
-  try {
-    current = JSON.parse(localStorage.getItem('neocity_current'));
-  } catch(e) { current = null; }
-  
-  if(!current) {
-    current = { score:0, pollution:0, happiness:100, buildings:0, disasters:0, industrial:0, residential:0, transport:0, green:100, disaster_events:[] };
+  loadCityData();
+  const history = JSON.parse(localStorage.getItem('neo_city_history') || '[]');
+
+  document.getElementById('s-score').textContent = cityData.score;
+  document.getElementById('s-poll').textContent = cityData.pollution;
+  document.getElementById('s-hap').textContent = cityData.happiness;
+  document.getElementById('s-build').textContent = cityData.buildings;
+  document.getElementById('s-dis').textContent = cityData.disasters;
+
+  if (history.length > 0) {
+    const avgScore = history.reduce((acc, curr) => acc + curr.score, 0) / history.length;
+    const avgPoll = history.reduce((acc, curr) => acc + curr.pollution, 0) / history.length;
+    
+    const scoreDiff = cityData.score - avgScore;
+    const pollDiff = cityData.pollution - avgPoll;
+
+    document.getElementById('s-score-delta').className = `stat-delta ${scoreDiff >= 0 ? 'up' : 'down'}`;
+    document.getElementById('s-score-delta').textContent = `${scoreDiff >= 0 ? '▲' : '▼'} ${Math.abs(Math.round(scoreDiff))} vs avg`;
+
+    document.getElementById('s-poll-delta').className = `stat-delta ${pollDiff <= 0 ? 'up' : 'down'}`;
+    document.getElementById('s-poll-delta').textContent = `${pollDiff <= 0 ? '▼' : '▲'} ${Math.abs(Math.round(pollDiff))}% vs avg`;
+  } else {
+    document.getElementById('s-score-delta').textContent = '';
+    document.getElementById('s-poll-delta').textContent = '';
   }
 
-  let history = [];
-  try {
-    history = JSON.parse(localStorage.getItem('neocity_history')) || [];
-    if(!Array.isArray(history)) history = [];
-  } catch(e) { history = []; }
+  const tbody = document.getElementById('history-tbody');
+  if (history.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" class="empty-history">No game history yet. Play a game to see your scores here.</td></tr>`;
+  } else {
+    let topScore = Math.max(...history.map(h => h.score));
+    tbody.innerHTML = history.map((h, i) => `
+      <tr>
+        <td>${history.length - i}</td>
+        <td class="score-cell">${h.score} ${h.score === topScore ? '<span class="crown-icon">👑</span>' : ''}</td>
+        <td>${h.pollution}%</td>
+        <td>${h.buildings}</td>
+        <td>${h.disasters}</td>
+        <td>${badge({label: h.perfLabel, cls: h.perfCls})}</td>
+        <td style="color:rgba(232,244,255,0.4)">${h.date}</td>
+      </tr>
+    `).join('');
+  }
 
-  const allScores = history.map(h => Number(h.score) || 0);
-  allScores.push(Number(current.score) || 0);
-  const highestScore = Math.max(...allScores, 0);
+  const polCfg = getPerfFromPollution(cityData.pollution);
+  const gaugeNum = document.getElementById('poll-gauge-num');
+  gaugeNum.textContent = `${cityData.pollution}%`;
+  gaugeNum.style.color = polCfg.color;
 
-  document.getElementById('s-score').innerHTML = (current.score || 0) + (current.score === highestScore && current.score > 0 ? ' <span class="crown-icon">👑</span>' : '');
-  document.getElementById('s-poll').textContent = current.pollution || 0;
-  document.getElementById('s-hap').textContent = current.happiness || 0;
-  document.getElementById('s-build').textContent = current.buildings || 0;
-  document.getElementById('s-dis').textContent = current.disasters || 0;
-
-  const pGaugeNum = document.getElementById('poll-gauge-num');
   const pBar = document.getElementById('poll-bar');
-  const polVal = current.pollution || 0;
-  pGaugeNum.textContent = polVal + '%';
-  pBar.style.width = polVal + '%';
+  pBar.style.width = `${cityData.pollution}%`;
+  pBar.style.background = polCfg.color;
 
-  if(polVal <= 25) {
-    pGaugeNum.style.color = 'var(--green)'; pBar.style.background = 'var(--green)';
-  } else if(polVal <= 50) {
-    pGaugeNum.style.color = 'var(--cyan)'; pBar.style.background = 'var(--cyan)';
-  } else if(polVal <= 75) {
-    pGaugeNum.style.color = 'var(--yellow)'; pBar.style.background = 'var(--yellow)';
+  document.getElementById('pb-industrial').style.width = `${cityData.breakdown.industrial}%`;
+  document.getElementById('pb-ind-val').textContent = `${cityData.breakdown.industrial}%`;
+  document.getElementById('pb-residential').style.width = `${cityData.breakdown.residential}%`;
+  document.getElementById('pb-res-val').textContent = `${cityData.breakdown.residential}%`;
+  document.getElementById('pb-transport').style.width = `${cityData.breakdown.transport}%`;
+  document.getElementById('pb-tr-val').textContent = `${cityData.breakdown.transport}%`;
+  document.getElementById('pb-green').style.width = `${cityData.breakdown.green}%`;
+  document.getElementById('pb-gr-val').textContent = `${cityData.breakdown.green}%`;
+
+  const disList = document.getElementById('disaster-list');
+  document.getElementById('dr-num').textContent = cityData.disasters;
+  document.getElementById('dr-num').style.color = cityData.disasters > 2 ? 'var(--red)' : (cityData.disasters > 0 ? 'var(--yellow)' : 'var(--green)');
+  
+  if (cityData.disasterEvents.length === 0) {
+    disList.innerHTML = `<div class="no-disasters">No disasters recorded yet.</div>`;
   } else {
-    pGaugeNum.style.color = 'var(--red)'; pBar.style.background = 'var(--red)';
-  }
-
-  document.getElementById('pb-industrial').style.width = (current.industrial || 0) + '%';
-  document.getElementById('pb-ind-val').textContent = (current.industrial || 0) + '%';
-  document.getElementById('pb-residential').style.width = (current.residential || 0) + '%';
-  document.getElementById('pb-res-val').textContent = (current.residential || 0) + '%';
-  document.getElementById('pb-transport').style.width = (current.transport || 0) + '%';
-  document.getElementById('pb-tr-val').textContent = (current.transport || 0) + '%';
-  document.getElementById('pb-green').style.width = (current.green || 0) + '%';
-  document.getElementById('pb-gr-val').textContent = (current.green || 0) + '%';
-
-  document.getElementById('dr-num').textContent = current.disasters || 0;
-  const dList = document.getElementById('disaster-list');
-  if(!current.disaster_events || current.disaster_events.length === 0) {
-    dList.innerHTML = `<div class="no-disasters">No active core breakdowns recorded.</div>`;
-  } else {
-    dList.innerHTML = current.disaster_events.map(ev => `
+    disList.innerHTML = cityData.disasterEvents.map(e => `
       <div class="dis-item">
-        <span class="dis-icon">🚨</span>
+        <span class="dis-icon">⚠</span>
         <div class="dis-info">
-          <div class="dis-name">${ev.name || 'System Fault'}</div>
-          <div class="dis-time">${ev.time || 'Just now'}</div>
+          <div class="dis-name">${e.name}</div>
+          <div class="dis-time">${e.time}</div>
         </div>
-        <span class="dis-sev ${ev.severity || 'high'}">${(ev.severity || 'HIGH').toUpperCase()}</span>
+        <span class="dis-sev ${e.severity}">${e.severity === 'high' ? 'CRITICAL' : 'MODERATE'}</span>
       </div>
     `).join('');
   }
 
-  const scoreDelta = document.getElementById('s-score-delta');
-  const pollDelta = document.getElementById('s-poll-delta');
-  if(history.length > 0) {
-    let prev = history[0];
-    let sDiff = (current.score || 0) - (prev.score || 0);
-    let pDiff = (current.pollution || 0) - (prev.pollution || 0);
+  const scoreCfg = getPerfFromScore(cityData.score);
+  const susScore = Math.max(0, Math.min(100, Math.round(cityData.happiness * 0.4 + (100 - cityData.pollution) * 0.4 + (cityData.breakdown.green * 0.2))));
+  const susCfg = getPerfFromPollution(100 - susScore);
 
-    scoreDelta.className = 'stat-delta ' + (sDiff >= 0 ? 'up' : 'down');
-    scoreDelta.textContent = (sDiff >= 0 ? '▲ +' : '▼ ') + sDiff + ' vs last';
-    pollDelta.className = 'stat-delta ' + (pDiff <= 0 ? 'up' : 'down');
-    pollDelta.textContent = (pDiff >= 0 ? '▲ +' : '▼ ') + pDiff + '% shift';
-  } else {
-    scoreDelta.textContent = '—'; pollDelta.textContent = '—';
-  }
+  document.getElementById('overall-badge').innerHTML = badge(scoreCfg);
+  
+  document.getElementById('perf-overall').textContent = cityData.score;
+  document.getElementById('perf-overall').style.color = scoreCfg.color;
+  document.getElementById('perf-overall-bar').style.width = `${Math.min(100, (cityData.score/1200)*100)}%`;
+  document.getElementById('perf-overall-bar').style.background = scoreCfg.color;
+  document.getElementById('perf-overall-badge').innerHTML = badge(scoreCfg);
 
-  let overallVal = Math.max(5, Math.min(100, Math.round(((current.score || 0) / 12) + (current.happiness || 100) - (current.pollution || 0))));
-  let structuralSust = Math.max(5, Math.min(100, Math.round(((current.green || 100) * 1.3) - ((current.industrial || 0) * 0.5))));
-  let pollutionRating = Math.max(5, Math.min(100, 100 - (current.pollution || 0)));
+  document.getElementById('perf-poll').textContent = `${cityData.pollution}%`;
+  document.getElementById('perf-poll').style.color = polCfg.color;
+  document.getElementById('perf-poll-bar').style.width = `${cityData.pollution}%`;
+  document.getElementById('perf-poll-bar').style.background = polCfg.color;
+  document.getElementById('perf-poll-badge').innerHTML = badge(polCfg);
 
-  document.getElementById('perf-overall').textContent = overallVal + '%';
-  document.getElementById('perf-overall-bar').style.width = overallVal + '%';
-  document.getElementById('perf-overall-badge').innerHTML = badge(getPerfFromScore(overallVal));
+  document.getElementById('perf-sus').textContent = `${susScore}/100`;
+  document.getElementById('perf-sus').style.color = susCfg.color;
+  document.getElementById('perf-sus-bar').style.width = `${susScore}%`;
+  document.getElementById('perf-sus-bar').style.background = susCfg.color;
+  document.getElementById('perf-sus-badge').innerHTML = badge(susCfg);
 
-  document.getElementById('perf-poll').textContent = pollutionRating + '%';
-  document.getElementById('perf-poll-bar').style.width = pollutionRating + '%';
-  document.getElementById('perf-poll-badge').innerHTML = badge(getPerfFromPollution(current.pollution || 0));
-
-  document.getElementById('perf-sus').textContent = structuralSust + '%';
-  document.getElementById('perf-sus-bar').style.width = structuralSust + '%';
-  document.getElementById('perf-sus-badge').innerHTML = badge(getPerfFromScore(structuralSust));
-  document.getElementById('overall-badge').innerHTML = badge(getPerfFromScore(overallVal));
-
-  const tbody = document.getElementById('history-tbody');
-  if(history.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" class="empty-history">No game history logs captured yet.</td></tr>`;
-  } else {
-    tbody.innerHTML = history.map((h, i) => {
-      const isCrown = h.score === highestScore && h.score > 0;
-      return `
-        <tr>
-          <td>${history.length - i}</td>
-          <td class="score-cell">${h.score || 0}${isCrown ? ' <span class="crown-icon">👑</span>' : ''}</td>
-          <td>${h.pollution || 0}%</td>
-          <td>${h.buildings || 0}</td>
-          <td>${h.disasters || 0}</td>
-          <td>${badge(getPerfFromScore((h.score || 0) / 10))}</td>
-          <td style="color:rgba(0,255,178,0.5); font-family: 'Orbitron', sans-serif; font-size:0.7rem;">${h.time || '--:--:--'}</td>
-        </tr>
-      `;
-    }).join('');
-  }
-
-  drawScoreChart(history, current.score || 0);
+  drawScoreChart(history);
+  addCursorHoverListeners();
 }
 
-// --- NEOBOT INTELLIGENCE INTERFACE ---
-const overlay = document.getElementById('neobot-overlay');
-const nbMessages = document.getElementById('nb-messages');
-const nbInput = document.getElementById('nb-input');
-
-const botResponses = {
-  "pollution": "To clear up contamination index metrics instantly, drop green spaces around dense production matrices.",
-  "score": "Equilibrium yields high structural returns. Keep happiness up, balance layouts, and push production records.",
-  "buildings": "Your systemic index could use a boost. Try arranging clean power frameworks inside the grid space next.",
-  "disasters": "Congestion limits structural safety parameters. Disperse grid assets evenly to mitigate disaster damage fields.",
-  "analyse": "Grid analysis matrix active. Data pools indicate steady output metrics, check pollution curves periodically."
-};
+// --- NeoBot Simulation Smart AI Engine ---
+const botMessagesContainer = document.getElementById('nb-messages');
 
 function openNeobot() {
-  if(!overlay) return;
-  overlay.style.display = 'flex';
-  setTimeout(() => overlay.classList.add('show'), 10);
-  if (nbMessages && nbMessages.children.length === 0) {
-    appendBotMsg("System initialized. State your optimization blueprint path, Developer.");
+  document.getElementById('neobot-overlay').classList.add('show');
+  if(botMessagesContainer.children.length === 0) {
+    showBotMessage("Greetings, Architect. I am NEOBOT, your predictive urban core processor. What systems shall we diagnose today?");
   }
 }
-function closeNeobot() {
-  if(!overlay) return;
-  overlay.classList.remove('show');
-  setTimeout(() => overlay.style.display = 'none', 300);
-}
-function handleOverlayClick(e) { if (e.target === overlay) closeNeobot(); }
 
-function appendBotMsg(text) {
-  if(!nbMessages) return;
-  const msg = document.createElement('div'); msg.className = 'nb-msg bot';
-  msg.innerHTML = `<div class="nb-msg-avatar">🤖</div><div class="nb-bubble">${text}</div>`;
-  nbMessages.appendChild(msg); nbMessages.scrollTop = nbMessages.scrollHeight;
+function closeNeobot() { document.getElementById('neobot-overlay').classList.remove('show'); }
+function handleOverlayClick(e) { if(e.target.id === 'neobot-overlay') closeNeobot(); }
+
+function showBotMessage(text) {
+  const msg = document.createElement('div');
+  msg.className = 'nb-msg bot';
+  msg.innerHTML = `
+    <div class="nb-msg-avatar">🤖</div>
+    <div class="nb-bubble">${text}</div>
+  `;
+  botMessagesContainer.appendChild(msg);
+  botMessagesContainer.scrollTop = botMessagesContainer.scrollHeight;
 }
-function appendUserMsg(text) {
-  if(!nbMessages) return;
-  const msg = document.createElement('div'); msg.className = 'nb-msg user';
-  msg.innerHTML = `<div class="nb-msg-avatar">👤</div><div class="nb-bubble">${text}</div>`;
-  nbMessages.appendChild(msg); nbMessages.scrollTop = nbMessages.scrollHeight;
+
+function showUserMessage(text) {
+  const msg = document.createElement('div');
+  msg.className = 'nb-msg user';
+  msg.innerHTML = `
+    <div class="nb-msg-avatar">👤</div>
+    <div class="nb-bubble">${text}</div>
+  `;
+  botMessagesContainer.appendChild(msg);
+  botMessagesContainer.scrollTop = botMessagesContainer.scrollHeight;
+}
+
+function showTypingIndicator() {
+  const typing = document.createElement('div');
+  typing.className = 'nb-msg bot';
+  typing.id = 'nb-typing-indicator';
+  typing.innerHTML = `
+    <div class="nb-msg-avatar">🤖</div>
+    <div class="nb-bubble"><div class="nb-typing"><span></span><span></span><span></span></div></div>
+  `;
+  botMessagesContainer.appendChild(typing);
+  botMessagesContainer.scrollTop = botMessagesContainer.scrollHeight;
+}
+
+function removeTypingIndicator() {
+  const el = document.getElementById('nb-typing-indicator');
+  if(el) el.remove();
 }
 
 function sendMessage() {
-  if(!nbInput) return;
-  const text = nbInput.value.trim(); if (!text) return;
-  appendUserMsg(text); nbInput.value = '';
-  
-  const ind = document.createElement('div'); ind.className = 'nb-msg bot';
-  ind.innerHTML = `<div class="nb-msg-avatar">🤖</div><div class="nb-bubble"><div class="nb-typing"><span></span><span></span><span></span></div></div>`;
-  nbMessages.appendChild(ind);
-  
-  setTimeout(() => {
-    ind.remove();
-    let low = text.toLowerCase();
-    let match = Object.keys(botResponses).find(k => low.includes(k));
-    appendBotMsg(match ? botResponses[match] : "Core matrix logic running. Keep balancing structural units to scale up city scores.");
-  }, 600);
+  const input = document.getElementById('nb-input');
+  const txt = input.value.trim();
+  if(!txt) return;
+  input.value = '';
+  processQuery(txt);
 }
 
-function sendQuick(phrase) {
-  appendUserMsg(phrase);
-  const ind = document.createElement('div'); ind.className = 'nb-msg bot';
-  ind.innerHTML = `<div class="nb-msg-avatar">🤖</div><div class="nb-bubble"><div class="nb-typing"><span></span><span></span><span></span></div></div>`;
-  nbMessages.appendChild(ind);
-  
+function sendQuick(txt) { processQuery(txt); }
+
+function processQuery(prompt) {
+  showUserMessage(prompt);
+  showTypingIndicator();
+
   setTimeout(() => {
-    ind.remove();
-    let low = phrase.toLowerCase();
-    let match = Object.keys(botResponses).find(k => low.includes(k));
-    appendBotMsg(match ? botResponses[match] : "Data stream synchronized.");
-  }, 500);
+    removeTypingIndicator();
+    let lower = prompt.toLowerCase();
+    let reply = "Query logged. Core diagnostics standard matrix online. Ensure green coverage balances commercial outputs.";
+
+    if (lower.includes('pollution')) {
+      reply = `Current pollution stands at ${cityData.pollution}%. To clear atmospheric toxins, construct grid networks of Green Covers. Reducing industrial zones will directly drop rates immediately.`;
+    } else if (lower.includes('score')) {
+      reply = `Your city rating sits at ${cityData.score} points. Boost optimization variables by upgrading existing zoning matrix layouts and satisfying resident health indicators while maintaining sub-40% pollution indexes.`;
+    } else if (lower.includes('building')) {
+      reply = `Current expansion arrays utilize ${cityData.buildings} objects. Balance structural loads with Green Cover placements to keep industrial runoff within safe, sustainable margins.`;
+    } else if (lower.includes('disaster')) {
+      reply = `Systems check: ${cityData.disasters} events recorded. High grid consumption spikes industrial failure rates. Upgrade infrastructural capacity grids to shield zones from emergency loads.`;
+    } else if (lower.includes('analyse') || lower.includes('performance')) {
+      reply = `Complete Analytical Core Readout: Score grading ranks [${getPerfFromScore(cityData.score).label.toUpperCase()}]. Pollution vectors are running [${getPerfFromPollution(cityData.pollution).label.toUpperCase()}]. Recommended procedure calls for balancing zone deployments.`;
+    }
+
+    showBotMessage(reply);
+  }, 750);
 }
 
-window.addEventListener('resize', renderDashboard);
-renderDashboard();
+// --- Bootstrap Execution Hooks ---
+window.addEventListener('load', () => {
+  renderDashboard();
+});
+window.addEventListener('resize', () => {
+  const history = JSON.parse(localStorage.getItem('neo_city_history') || '[]');
+  drawScoreChart(history);
+});
 </script>
 </body>
 </html>
