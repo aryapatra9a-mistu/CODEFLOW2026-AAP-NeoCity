@@ -738,6 +738,7 @@ function loadCityData() {
   if (stored) {
     cityData = JSON.parse(stored);
   } else {
+    // Default initial mock parameters if no data found
     cityData = {
       score: 485,
       pollution: 34,
@@ -759,7 +760,9 @@ function saveCityData() {
 
 function startNewGame() {
   let history = JSON.parse(localStorage.getItem('neo_city_history') || '[]');
-  if (cityData.buildings > 0) {
+  
+  // Save current city profile to history matrix data before wiping it clean
+  if (cityData.buildings > 0 || cityData.score > 0) {
     const scorePerf = getPerfFromScore(cityData.score);
     history.unshift({
       id: history.length + 1,
@@ -774,6 +777,7 @@ function startNewGame() {
     localStorage.setItem('neo_city_history', JSON.stringify(history));
   }
 
+  // Wiping and resetting live states entirely
   cityData = {
     score: 0,
     pollution: 0,
@@ -783,9 +787,10 @@ function startNewGame() {
     breakdown: { industrial: 0, residential: 0, transport: 0, green: 100 },
     disasterEvents: []
   };
+  
   saveCityData();
-  closeModal('new-modal');
-  renderDashboard();
+  closeModal('new-modal'); // Hides the dark blur screen layout instantly
+  renderDashboard();      // Re-renders graph templates, numbers, progress meters instantly
 }
 
 // --- High Tech Canvas Score Chart ---
